@@ -5,7 +5,8 @@
   "main": "app.js",
   "type": "module",
   "scripts": {
-    "start": "node --watch dist/app.js"
+    "start": "node --watch dist/src/app.js",
+    "build": "tsc && copyfiles -u 1 src/views/**/* dist/src"
   },
   "keywords": [],
   "author": "Cloudjiek",
@@ -23,6 +24,7 @@
     "multer": "^1.4.5-lts.1",
     "pg": "^8.12.0",
     "prisma": "^5.19.1",
+    "pug": "^3.0.3",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
@@ -34,6 +36,7 @@
     "@types/node": "^22.5.4",
     "@types/pg": "^8.11.10",
     "@types/socket.io": "^3.0.1",
+    "copyfiles": "^2.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2"
   }
