@@ -6,7 +6,7 @@ html(lang="en")
         title #{pageName}
     body 
         h1 Hi! Please sign up!
-        form(action="/users/sign-up" method="POST")
+        form(action="/api/users/sign-up" method="POST")
             label(for="username") Username
             input(type="text", name="username", id="username", required)
 
@@ -16,3 +16,10 @@ html(lang="en")
             label(for="password") Password
             input(type="password", name="password", id="password", required)
             button(type="submit") Sign Up
+        form(action="/api/users/sign-in" method="POST")
+            label(for="username") Username
+            input(type="text", name="username", id="username", required)
+
+            label(for="password") Password
+            input(type="password", name="password", id="password", required)
+            button(type="submit") Sign In
