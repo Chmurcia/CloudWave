@@ -3,7 +3,9 @@ CloudWave is a social media web app!
 
 Dependencies used:
   "@prisma/client": "^5.19.1",
+  
   "apollo-server-express": "^3.13.0",
+  
   "bcrypt": "^5.1.1",
   "cloudwave": "file:",
   "cors": "^2.8.5",
