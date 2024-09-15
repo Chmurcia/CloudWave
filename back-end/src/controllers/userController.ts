@@ -109,13 +109,13 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 const deleteUser = async (req: Request, res: Response) => {
-  const { id } = req.body;
+  const { id, password } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: Number(id) },
     });
 
-    if (!existingUser) {
+    if (!user) {
       res.status(404).json({
         data: {
           status: 404,
@@ -125,14 +125,26 @@ const deleteUser = async (req: Request, res: Response) => {
       return;
     }
 
-    const deletedUser = await prisma.users.delete({
+    const isMatch = await comparePassword(password, user.password);
+
+    if (!isMatch) {
+      res.status(401).json({
+        data: {
+          status: 401,
+          message: "Invalid password",
+        },
+      });
+      return;
+    }
+
+    await prisma.users.delete({
       where: { id: Number(id) },
     });
 
     res.status(200).json({
       data: {
         status: 200,
-        deletedUser,
+        message: "User deleted successfully",
       },
     });
   } catch (err) {
