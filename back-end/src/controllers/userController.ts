@@ -140,4 +140,34 @@ const signInUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export { createUser, getAllUser, signInUser };
+const getUser = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.body;
+  if (!id) {
+    res.status(400).json({
+      data: {
+        status: 400,
+        message: "ID is required",
+      },
+    });
+  }
+
+  const user = await prisma.users.findUnique({ where: { id: Number(id) } });
+
+  if (!user) {
+    res.status(404).json({
+      data: {
+        status: 404,
+        message: "User not found",
+      },
+    });
+  }
+
+  res.status(200).json({
+    data: {
+      status: 200,
+      user,
+    },
+  });
+};
+
+export { createUser, getAllUser, signInUser, getUser };

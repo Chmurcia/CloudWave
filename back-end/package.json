@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node --watch dist/src/app.js",
-    "build": "tsc && copyfiles -u 1 src/views/**/* dist/src"
+    "build": "tsc"
   },
   "keywords": [],
   "author": "Cloudjiek",
