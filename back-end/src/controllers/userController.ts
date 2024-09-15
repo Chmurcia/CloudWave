@@ -3,77 +3,7 @@ import { hashPassword, comparePassword } from "../../utils/auth.utils.js";
 import prisma from "../prisma/prismaClient.js";
 import { generateToken } from "../../utils/jwt.utils.js";
 
-//createUser FOR SIGNING-UP NEW USERS
-// BOTH USERNAME & EMAIL MUST BE UNIQUE
-const createUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    // RECEIVING DATA
-    const { username, email, password } = req.body;
-
-    // LOOKING FOR AN USER WITH GIVEN EMAIL
-    const existingUserByEmail = await prisma.users.findUnique({
-      where: { email },
-    });
-
-    // IF USER EXISTS - RETURN RES STATUS 400 & MESSAGE
-    if (existingUserByEmail) {
-      res.status(400).json({
-        data: {
-          status: 400,
-          message: "Email already in use",
-        },
-      });
-      return;
-    }
-
-    // LOOKING FOR A USER WITH GIVEN USERNAME
-    const existingUserByUsername = await prisma.users.findUnique({
-      where: { username },
-    });
-
-    // IF USER EXISTS - RETURN RES STATUS 400 & MESSAGE
-    if (existingUserByUsername) {
-      res.status(400).json({
-        data: {
-          status: 400,
-          message: "Username already in use",
-        },
-      });
-      return;
-    }
-
-    // HASING A PASSWORD
-    const hashedPassword: string = await hashPassword(password);
-
-    // IF EVERYTHING IS OK - CREATE USER IN DB THROUGH PRISMA
-    const user = await prisma.users.create({
-      data: {
-        username,
-        email,
-        password: hashedPassword,
-      },
-    });
-
-    // IF EVERYTHING IS OK - CREATE USER AND RETURN JSON WITH STATUS, MESSAGE & CREATED USER
-    res.status(201).json({
-      data: {
-        status: 201,
-        message: "User created successfully",
-        user,
-      },
-    });
-  } catch (err) {
-    //IF ERROR - SEND RES STATUS 500 DUE TO SERVER ERROR
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error logging in",
-      },
-    });
-  }
-};
-
-// TEST getUser TO GET ALL USER IN JSON!
+// GET ALL USERS
 const getAllUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const users = await prisma.users.findMany();
@@ -94,80 +24,215 @@ const getAllUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const signInUser = async (req: Request, res: Response): Promise<void> => {
+// GET USER BY ID
+const getUser = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.body;
   try {
-    const { username, password } = req.body;
+    if (!id) {
+      res.status(400).json({
+        data: {
+          status: 400,
+          message: "ID is required",
+        },
+      });
+    }
 
-    const user = await prisma.users.findUnique({ where: { username } });
+    const user = await prisma.users.findUnique({ where: { id: Number(id) } });
+
     if (!user) {
-      res.status(401).json({
+      res.status(404).json({
         data: {
-          status: 401,
-          message: "Invalid username",
+          status: 404,
+          message: "User not found",
         },
       });
       return;
     }
-
-    const ifPasswordValid = await comparePassword(password, user.password);
-
-    if (!ifPasswordValid) {
-      res.status(401).json({
-        data: {
-          status: 401,
-          message: "Invalid password",
-        },
-      });
-      return;
-    }
-
-    const token = generateToken(user.id);
 
     res.status(200).json({
-      status: 200,
-      message: "Login successful",
-      token,
-      user,
+      data: {
+        status: 200,
+        user,
+      },
     });
   } catch (err) {
     res.status(500).json({
       data: {
         status: 500,
-        message: "Error signing in",
-        err,
+        message: "Error fetching data",
       },
     });
   }
 };
 
-const getUser = async (req: Request, res: Response): Promise<void> => {
+// UPDATE USER
+const updateUser = async (req: Request, res: Response): Promise<void> => {
+  const { id, username, email, bio } = req.body;
+  try {
+    const existingUser = await prisma.users.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!existingUser) {
+      res.status(404).json({
+        data: {
+          status: 404,
+          message: "User not found",
+        },
+      });
+      return;
+    }
+
+    const updatedUser = await prisma.users.update({
+      where: { id: Number(id) },
+      data: {
+        username,
+        email,
+        bio,
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        status: 200,
+        updatedUser,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: {
+        status: 500,
+        message: "Error fetching data",
+      },
+    });
+  }
+};
+
+const deleteUser = async (req: Request, res: Response) => {
   const { id } = req.body;
-  if (!id) {
-    res.status(400).json({
+  try {
+    const existingUser = await prisma.users.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!existingUser) {
+      res.status(404).json({
+        data: {
+          status: 404,
+          message: "User not found",
+        },
+      });
+      return;
+    }
+
+    const deletedUser = await prisma.users.delete({
+      where: { id: Number(id) },
+    });
+
+    res.status(200).json({
       data: {
-        status: 400,
-        message: "ID is required",
+        status: 200,
+        deletedUser,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: {
+        status: 500,
+        message: "Error fetching data",
       },
     });
   }
-
-  const user = await prisma.users.findUnique({ where: { id: Number(id) } });
-
-  if (!user) {
-    res.status(404).json({
-      data: {
-        status: 404,
-        message: "User not found",
-      },
-    });
-  }
-
-  res.status(200).json({
-    data: {
-      status: 200,
-      user,
-    },
-  });
 };
 
-export { createUser, getAllUser, signInUser, getUser };
+// UPDATE AVATAR
+const updateAvatar = async (req: Request, res: Response) => {
+  const { id, avatar_url } = req.body;
+  try {
+    const existingUser = await prisma.users.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!existingUser) {
+      res.status(404).json({
+        data: {
+          status: 404,
+          message: "User not found",
+        },
+      });
+      return;
+    }
+
+    const updatedUser = await prisma.users.update({
+      where: { id: Number(id) },
+      data: {
+        avatar_url,
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        status: 200,
+        updatedUser,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: {
+        status: 500,
+        message: "Error fetching data",
+      },
+    });
+  }
+};
+
+// IMPORTANT - Y0U D0N'T HAVE T0 MAINTAIN NO_AVATAR CASE, IT WILL BE MAINTAINED 0N FR0NT-END. THERE W0N'T BE ANY WAY T0 SEND EMPTY STRING AS AN AVATAR URL
+// DELETE AVATAR
+const deleteAvatar = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.body;
+  try {
+    const existingUser = await prisma.users.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!existingUser) {
+      res.status(404).json({
+        data: {
+          status: 404,
+          message: "User not found",
+        },
+      });
+      return;
+    }
+
+    const updatedUser = await prisma.users.update({
+      where: { id: Number(id) },
+      data: {
+        avatar_url: null,
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        status: 200,
+        updatedUser,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: {
+        status: 500,
+        message: "Error fetching data",
+      },
+    });
+  }
+};
+
+export {
+  getAllUser,
+  getUser,
+  updateUser,
+  updateAvatar,
+  deleteUser,
+  deleteAvatar,
+};
