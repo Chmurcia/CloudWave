@@ -54,12 +54,25 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
+    const userSettings = await prisma.user_settings.create({
+      data: {
+        user_id: user.id,
+        theme: "dark",
+        notifications_enabled: true,
+        language: "en",
+        profile_visibility: "public",
+        status: "",
+        activity_tracking: false,
+      },
+    });
+
     // IF EVERYTHING IS OK - CREATE USER AND RETURN JSON WITH STATUS, MESSAGE & CREATED USER
     res.status(201).json({
       data: {
         status: 201,
         message: "User created successfully",
         user,
+        userSettings,
       },
     });
   } catch (err) {
@@ -89,9 +102,9 @@ const signInUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const ifPasswordValid = await comparePassword(password, user.password);
+    const isMatch = await comparePassword(password, user.password);
 
-    if (!ifPasswordValid) {
+    if (!isMatch) {
       res.status(401).json({
         data: {
           status: 401,

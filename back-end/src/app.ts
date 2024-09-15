@@ -6,6 +6,7 @@ import url from "url";
 import { userRouter } from "./routes/userRoutes.js";
 import { tokenRouter } from "./routes/tokenRoutes.js";
 import { authRouter } from "./routes/authRoutes.js";
+import { settingRouter } from "./routes/settingRoutes.js";
 
 dotenv.config();
 
@@ -29,5 +30,6 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/api/users", userRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/tokens", tokenRouter);
+app.use("/api/settings", settingRouter);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
