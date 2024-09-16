@@ -8,7 +8,9 @@ enum typeOfNot {
   "COMMENT",
   "FOLLOWER",
   "FRIEND_REQUEST",
-  "LIKE",
+  "LIKE-POST",
+  "LIKE-COMMENT",
+  "LIKE-MESSAGE",
   "POST",
 }
 
@@ -180,10 +182,22 @@ const getNotificationReference = async (
           select: { sender_id: true },
         });
         break;
-      case "LIKE":
-        referenceData = await prisma.likes.findUnique({
+      case "LIKE-POST":
+        referenceData = await prisma.post_likes.findUnique({
           where: { id: Number(referenceId) },
           select: { post_id: true },
+        });
+        break;
+      case "LIKE-MESSAGE":
+        referenceData = await prisma.message_likes.findUnique({
+          where: { id: Number(referenceId) },
+          select: { message_id: true },
+        });
+        break;
+      case "LIKE-COMMENT":
+        referenceData = await prisma.comment_likes.findUnique({
+          where: { id: Number(referenceId) },
+          select: { comment_id: true },
         });
         break;
       case "POST":
