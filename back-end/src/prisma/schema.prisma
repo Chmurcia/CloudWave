@@ -89,7 +89,6 @@ model friend_requests {
   receiver_id                              Int?
   status                                   String?   @default("pending") @db.VarChar(20)
   sent_at                                  DateTime? @default(now()) @db.Timestamp(6)
-  responded_at                             DateTime? @db.Timestamp(6)
   users_friend_requests_receiver_idTousers users?    @relation("friend_requests_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_friend_requests_sender_idTousers   users?    @relation("friend_requests_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
