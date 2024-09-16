@@ -1,1 +1,1 @@
-// CREATE | DELETE
+// CREATE | READ | DELETE //
