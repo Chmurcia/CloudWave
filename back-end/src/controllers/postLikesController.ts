@@ -1,4 +1,4 @@
-// CREATE | DELETE
+// CREATE | READ | DELETE
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
 
