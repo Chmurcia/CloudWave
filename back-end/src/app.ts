@@ -9,7 +9,10 @@ import { authRouter } from "./routes/authRoutes.js";
 import { settingRouter } from "./routes/settingRoutes.js";
 import { postRouter } from "./routes/postRoutes.js";
 import { notificationRouter } from "./routes/notificationRoutes.js";
-import { friendRouter } from "./routes/friendController.js";
+import { friendRouter } from "./routes/friendRouter.js";
+import { messageRouter } from "./routes/messageRouter.js";
+import { followerRouter } from "./routes/followerRoutes.js";
+import { commentRouter } from "./routes/commentRoutes.js";
 
 dotenv.config();
 
@@ -37,5 +40,8 @@ app.use("/api/settings", settingRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/friends", friendRouter);
+app.use("/api/messages", messageRouter);
+app.use("/api/followers", followerRouter);
+app.use("/api/comments", commentRouter);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
