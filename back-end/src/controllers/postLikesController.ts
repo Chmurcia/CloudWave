@@ -122,6 +122,45 @@ const getPostLikeById = async (req: Request, res: Response) => {
   }
 };
 
+const getPostLikePostId = async (req: Request, res: Response) => {
+  const { postId } = req.body;
+  try {
+    const existingPost = await prisma.posts.findUnique({
+      where: {
+        id: Number(postId),
+      },
+    });
+    if (!existingPost) {
+      res.status(404).json({
+        data: {
+          status: 404,
+          message: "Post not found",
+        },
+      });
+      return;
+    }
+    const post_likes = await prisma.post_likes.findMany({
+      where: {
+        post_id: Number(postId),
+      },
+    });
+
+    res.status(200).json({
+      data: {
+        status: 200,
+        post_likes,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      data: {
+        status: 500,
+        message: "Error fetching data",
+      },
+    });
+  }
+};
+
 const deletePostLike = async (req: Request, res: Response): Promise<void> => {
   const { postLikeId } = req.body;
   try {
