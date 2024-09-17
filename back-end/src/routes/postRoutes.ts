@@ -10,7 +10,8 @@ import {
 import {
   createPostLike,
   deletePostLike,
-  getPostLikeById,
+  getPostLikeByPostId,
+  getPostLikeByUserId,
 } from "../controllers/postLikesController.js";
 const router = Router();
 
@@ -24,7 +25,8 @@ router
 router.route("/get-by-id").get(getPostsById);
 
 router.route("/like").post(createPostLike).delete(deletePostLike);
-router.route("/like/get-by-id").get(getPostLikeById);
+router.route("/like/get-by-user-id").get(getPostLikeByUserId);
+router.route("/like/get-by-post-id").get(getPostLikeByPostId);
 
 export { router as postRouter };
 // /api/posts/

@@ -75,7 +75,7 @@ const createPostLike = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const getPostLikeById = async (req: Request, res: Response) => {
+const getPostLikeByUserId = async (req: Request, res: Response) => {
   const { userId } = req.body;
   try {
     const existingUser = await prisma.users.findUnique({
@@ -122,7 +122,7 @@ const getPostLikeById = async (req: Request, res: Response) => {
   }
 };
 
-const getPostLikePostId = async (req: Request, res: Response) => {
+const getPostLikeByPostId = async (req: Request, res: Response) => {
   const { postId } = req.body;
   try {
     const existingPost = await prisma.posts.findUnique({
@@ -202,4 +202,9 @@ const deletePostLike = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export { createPostLike, getPostLikeById, deletePostLike };
+export {
+  createPostLike,
+  getPostLikeByUserId,
+  getPostLikeByPostId,
+  deletePostLike,
+};
