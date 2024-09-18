@@ -16,13 +16,14 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
     messageHisDur,
   } = req.body;
   try {
-    if (!chatName || !maxParticipants || !isPrivate || !messageHisDur) {
+    if (!chatName || !maxParticipants || isPrivate === null || !messageHisDur) {
       res.status(404).json({
         data: {
           status: 404,
           message: "Required informations not provided",
         },
       });
+      return;
     }
     const existingOwner = await prisma.users.findUnique({
       where: {
