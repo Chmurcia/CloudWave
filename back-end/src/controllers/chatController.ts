@@ -6,43 +6,68 @@ import prisma from "../prisma/prismaClient.js";
 // chatId, userId, role
 
 const createChat = async (req: Request, res: Response): Promise<void> => {
-  const { ownerId, name, imageUrl } = req.body;
-  const existingOwner = await prisma.users.findUnique({
-    where: {
-      id: Number(ownerId),
-    },
-  });
-  if (!existingOwner) {
-    res.status(404).json({
-      data: {
-        status: 404,
-        message: "Owner not found",
+  const {
+    ownerId,
+    imageUrl,
+    chatName,
+    maxParticipants,
+    description,
+    isPrivate,
+    messageHisDur,
+  } = req.body;
+  try {
+    if (!chatName || !maxParticipants || !isPrivate || !messageHisDur) {
+      res.status(404).json({
+        data: {
+          status: 404,
+          message: "Required informations not provided",
+        },
+      });
+    }
+    const existingOwner = await prisma.users.findUnique({
+      where: {
+        id: Number(ownerId),
       },
     });
-    return;
-  }
+    if (!existingOwner) {
+      res.status(404).json({
+        data: {
+          status: 404,
+          message: "Owner not found",
+        },
+      });
+      return;
+    }
 
-  const createdChat = await prisma.chats.create({
-    data: {
-      owner_id: Number(ownerId),
-      name,
-      image_url: imageUrl,
-    },
-  });
-  await prisma.chat_users.create({
-    data: {
-      chat_id: createdChat.id,
-      user_id: Number(ownerId),
-      role: "owner",
-    },
-  });
-  res.status(200).json({
-    data: {
-      status: 200,
-      createdChat,
-    },
-  });
-  try {
+    const createdChat = await prisma.chats.create({
+      data: {
+        owner_id: Number(ownerId),
+        image_url: imageUrl,
+      },
+    });
+    await prisma.chat_settings.create({
+      data: {
+        chat_id: createdChat.id,
+        chat_name: chatName,
+        max_participants: maxParticipants,
+        description,
+        is_private: isPrivate,
+        message_history_duration: messageHisDur,
+      },
+    });
+    await prisma.chat_users.create({
+      data: {
+        chat_id: createdChat.id,
+        user_id: Number(ownerId),
+        role: "owner",
+      },
+    });
+    res.status(200).json({
+      data: {
+        status: 200,
+        createdChat,
+      },
+    });
   } catch (err) {
     res.status(500).json({
       data: {
