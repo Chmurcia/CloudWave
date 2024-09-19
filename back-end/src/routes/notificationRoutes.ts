@@ -3,7 +3,7 @@ import {
   createNotification,
   getNotifications,
   getNotificationById,
-  getNotificationReference,
+  getNotificationRT,
   deleteNotification,
 } from "../controllers/notificationController.js";
 
@@ -14,7 +14,7 @@ router
   .post(createNotification)
   .get(getNotifications)
   .delete(deleteNotification);
-router.route("/get-by-reference").get(getNotificationReference);
+router.route("/get-by-reference").get(getNotificationRT);
 router.route("/get-by-id").get(getNotificationById);
 
 export { router as notificationRouter };
