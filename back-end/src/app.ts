@@ -13,6 +13,8 @@ import { friendRouter } from "./routes/friendRouter.js";
 import { messageRouter } from "./routes/messageRouter.js";
 import { followerRouter } from "./routes/followerRoutes.js";
 import { commentRouter } from "./routes/commentRoutes.js";
+import { chatRouter } from "./routes/chatRoutes.js";
+import { logRouter } from "./routes/activityLogsRoutes.js";
 
 dotenv.config();
 
@@ -43,5 +45,7 @@ app.use("/api/friends", friendRouter);
 app.use("/api/messages", messageRouter);
 app.use("/api/followers", followerRouter);
 app.use("/api/comments", commentRouter);
+app.use("/api/chats", chatRouter);
+app.use("/api/activity-logs", logRouter);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
