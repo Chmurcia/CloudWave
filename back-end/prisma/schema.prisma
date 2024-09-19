@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,243 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model activity_logs {
+  id           Int       @id @default(autoincrement())
+  user_id      Int?
+  type         String    @db.VarChar(50)
+  reference_id Int?
+  details      String?
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  users        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model blocked_users {
+  id                                         Int       @id @default(autoincrement())
+  user_id                                    Int?
+  blocked_user_id                            Int?
+  created_at                                 DateTime? @default(now()) @db.Timestamp(6)
+  users_blocked_users_blocked_user_idTousers users?    @relation("blocked_users_blocked_user_idTousers", fields: [blocked_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_blocked_users_user_idTousers         users?    @relation("blocked_users_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, blocked_user_id])
+}
+
+model chat_settings {
+  id                       Int     @id @default(autoincrement())
+  chat_id                  Int?
+  chat_name                String  @db.VarChar(255)
+  max_participants         Int
+  description              String?
+  is_private               Boolean
+  message_history_duration String? @db.VarChar(10)
+  chats                    chats?  @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model chat_users {
+  id        Int       @id @default(autoincrement())
+  chat_id   Int?
+  user_id   Int?
+  joined_at DateTime? @default(now()) @db.Timestamp(6)
+  chats     chats?    @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users     users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([chat_id, user_id])
+}
+
+model chats {
+  id                 Int                  @id @default(autoincrement())
+  owner_id           Int?
+  image_url          String?              @db.VarChar(255)
+  created_at         DateTime?            @default(now()) @db.Timestamp(6)
+  chat_settings      chat_settings[]
+  chat_user_settings chat_user_settings[]
+  chat_users         chat_users[]
+  users              users?               @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "chats_user_id_fkey")
+  messages           messages[]
+}
+
+model comment_likes {
+  id         Int       @id @default(autoincrement())
+  comment_id Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  comments   comments? @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([comment_id, user_id])
+}
+
+model comments {
+  id            Int             @id @default(autoincrement())
+  user_id       Int?
+  post_id       Int?
+  content       String
+  image_url     String?         @db.VarChar(255)
+  video_url     String?         @db.VarChar(255)
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  comment_likes comment_likes[]
+  posts         posts?          @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model followers {
+  id                                  Int       @id @default(autoincrement())
+  follower_id                         Int?
+  following_id                        Int?
+  created_at                          DateTime? @default(now()) @db.Timestamp(6)
+  users_followers_follower_idTousers  users?    @relation("followers_follower_idTousers", fields: [follower_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_followers_following_idTousers users?    @relation("followers_following_idTousers", fields: [following_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([follower_id, following_id])
+}
+
+model friend_requests {
+  id                                       Int       @id @default(autoincrement())
+  sender_id                                Int?
+  receiver_id                              Int?
+  status                                   String?   @default("pending") @db.VarChar(20)
+  sent_at                                  DateTime? @default(now()) @db.Timestamp(6)
+  users_friend_requests_receiver_idTousers users?    @relation("friend_requests_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_friend_requests_sender_idTousers   users?    @relation("friend_requests_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([sender_id, receiver_id], map: "unique_sender_receiver_pair")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model friends {
+  user_id                        Int?
+  friend_id                      Int?
+  since                          DateTime? @default(now()) @db.Timestamp(6)
+  id                             Int       @id @default(autoincrement())
+  users_friends_friend_idTousers users?    @relation("friends_friend_idTousers", fields: [friend_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_friends_user_idTousers   users?    @relation("friends_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model message_attachments {
+  id         Int       @id @default(autoincrement())
+  message_id Int?
+  file_url   String    @db.VarChar(255)
+  file_type  String    @db.VarChar(50)
+  messages   messages? @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model message_likes {
+  id         Int       @id @default(autoincrement())
+  message_id Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  messages   messages? @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([message_id, user_id])
+}
+
+model messages {
+  id                  Int                   @id @default(autoincrement())
+  chat_id             Int?
+  sender_id           Int?
+  content             String
+  created_at          DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
+  is_read             Boolean?              @default(false)
+  message_attachments message_attachments[]
+  message_likes       message_likes[]
+  chats               chats?                @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users?                @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model notifications {
+  id                                      Int       @id @default(autoincrement())
+  user_id                                 Int?
+  type                                    String    @db.VarChar(50)
+  reference_id                            Int?
+  message                                 String?
+  is_read                                 Boolean?  @default(false)
+  created_at                              DateTime? @default(now()) @db.Timestamp(6)
+  triggered_by                            Int?
+  users_notifications_triggered_byTousers users?    @relation("notifications_triggered_byTousers", fields: [triggered_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_notifications_user_idTousers      users?    @relation("notifications_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model post_likes {
+  id         Int       @id @default(autoincrement())
+  post_id    Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, user_id])
+}
+
+model posts {
+  id         Int          @id @default(autoincrement())
+  user_id    Int?
+  content    String
+  image_url  String?      @db.VarChar(255)
+  video_url  String?      @db.VarChar(255)
+  created_at DateTime?    @default(now()) @db.Timestamp(6)
+  comments   comments[]
+  post_likes post_likes[]
+  users      users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_settings {
+  user_id               Int      @id
+  theme                 String?  @default("dark") @db.VarChar(50)
+  notifications_enabled Boolean? @default(true)
+  language              String?  @default("en") @db.VarChar(40)
+  profile_visibility    String?  @default("public") @db.VarChar(50)
+  status                String?  @db.VarChar(50)
+  activity_tracking     Boolean? @default(false)
+  users                 users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                                                 Int                  @id @default(autoincrement())
+  username                                           String               @unique @db.VarChar(80)
+  email                                              String               @unique @db.VarChar(100)
+  password                                           String               @db.VarChar(255)
+  bio                                                String?
+  avatar_url                                         String?              @db.VarChar(255)
+  created_at                                         DateTime?            @default(now()) @db.Timestamp(6)
+  role                                               String               @default("user") @db.VarChar(50)
+  activity_logs                                      activity_logs[]
+  blocked_users_blocked_users_blocked_user_idTousers blocked_users[]      @relation("blocked_users_blocked_user_idTousers")
+  blocked_users_blocked_users_user_idTousers         blocked_users[]      @relation("blocked_users_user_idTousers")
+  chat_user_settings                                 chat_user_settings[]
+  chat_users                                         chat_users[]
+  chats                                              chats[]
+  comment_likes                                      comment_likes[]
+  comments                                           comments[]
+  followers_followers_follower_idTousers             followers[]          @relation("followers_follower_idTousers")
+  followers_followers_following_idTousers            followers[]          @relation("followers_following_idTousers")
+  friend_requests_friend_requests_receiver_idTousers friend_requests[]    @relation("friend_requests_receiver_idTousers")
+  friend_requests_friend_requests_sender_idTousers   friend_requests[]    @relation("friend_requests_sender_idTousers")
+  friends_friends_friend_idTousers                   friends[]            @relation("friends_friend_idTousers")
+  friends_friends_user_idTousers                     friends[]            @relation("friends_user_idTousers")
+  message_likes                                      message_likes[]
+  messages                                           messages[]
+  notifications_notifications_triggered_byTousers    notifications[]      @relation("notifications_triggered_byTousers")
+  notifications_notifications_user_idTousers         notifications[]      @relation("notifications_user_idTousers")
+  post_likes                                         post_likes[]
+  posts                                              posts[]
+  user_settings                                      user_settings?
+}
+
+model chat_user_settings {
+  id                    Int       @id @default(autoincrement())
+  user_id               Int
+  chat_id               Int
+  notifications_enabled Boolean?  @default(true)
+  role                  String?   @default("member") @db.VarChar(50)
+  pinned_chat           Boolean?  @default(false)
+  hidden_chat           Boolean?  @default(false)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  is_muted              Boolean?  @default(false)
+  chats                 chats     @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
