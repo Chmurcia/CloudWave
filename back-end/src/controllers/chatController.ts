@@ -60,6 +60,12 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
       data: {
         chat_id: createdChat.id,
         user_id: Number(ownerId),
+      },
+    });
+    await prisma.chat_user_settings.create({
+      data: {
+        user_id: Number(ownerId),
+        chat_id: Number(createdChat.id),
         role: "owner",
       },
     });
