@@ -2,52 +2,45 @@ import { Request, Response } from "express";
 import { verifyRefreshToken } from "../../utils/jwt.utils.js";
 import prisma from "../prisma/prismaClient.js";
 import { generateToken, generateRefreshToken } from "../../utils/jwt.utils.js";
+import {
+  checkThingExists400,
+  checkThingExists404,
+} from "../../utils/helpers/checkExists.js";
+import { status200Send, status500 } from "../../utils/helpers/status.js";
 
 const refreshToken = async (req: Request, res: Response): Promise<void> => {
-  const { refreshToken } = req.body;
+  try {
+    const { refreshToken } = req.body;
 
-  if (!refreshToken) {
-    res.status(401).json({
-      data: {
-        status: 401,
-        message: "No refresh token provided!",
-      },
+    const existingToken = checkThingExists400(res, refreshToken, "Token");
+    if (!existingToken) return;
+
+    const user = verifyRefreshToken(refreshToken);
+    if (!user) {
+      res.status(403).json({
+        data: {
+          status: 403,
+          message: "Invalid refresh token",
+        },
+      });
+      return;
+    }
+
+    const dbUser = await prisma.users.findUnique({
+      where: { id: user.userId },
     });
-    return;
-  }
+    const existingDbUser = await checkThingExists404(res, dbUser, "User");
+    if (!existingDbUser) return;
 
-  const user = verifyRefreshToken(refreshToken);
-  if (!user) {
-    res.status(403).json({
-      data: {
-        status: 403,
-        message: "Invalid refresh token",
-      },
+    const newAccessToken = generateToken(user.userId);
+    const newRefreshToken = generateRefreshToken(user.userId);
+
+    status200Send(res, {
+      tokens: { accessToken: newAccessToken, refreshToken: newRefreshToken },
     });
-    return;
+  } catch (err) {
+    status500(res);
   }
-
-  const dbUser = await prisma.users.findUnique({ where: { id: user.userId } });
-  if (!dbUser) {
-    res.status(403).json({
-      data: {
-        status: 403,
-        message: "User not found!",
-      },
-    });
-    return;
-  }
-
-  const newAccessToken = generateToken(user.userId);
-  const newRefreshToken = generateRefreshToken(user.userId);
-
-  res.status(200).json({
-    data: {
-      status: 200,
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
-    },
-  });
 };
 
 export { refreshToken };

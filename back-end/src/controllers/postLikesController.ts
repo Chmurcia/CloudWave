@@ -1,39 +1,30 @@
 // CREATE | READ | DELETE
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import {
+  checkThingExists404,
+  checkThingExists409,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
 
 const createPostLike = async (req: Request, res: Response): Promise<void> => {
   const { postId, userId } = req.body;
   try {
-    const existingPost = prisma.posts.findUnique({
+    const post = await prisma.posts.findUnique({
       where: { id: Number(postId) },
     });
-    if (!existingPost) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Post not found",
-        },
-      });
-      return;
-    }
-    const existingUser = prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
+    const existingPost = await checkThingExists404(res, post, "Post");
+    if (!existingPost) return;
 
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingLike = await prisma.post_likes.findUnique({
+    const like = await prisma.post_likes.findUnique({
       where: {
         post_id_user_id: {
           post_id: Number(postId),
@@ -41,144 +32,80 @@ const createPostLike = async (req: Request, res: Response): Promise<void> => {
         },
       },
     });
+    const existingLike = await checkThingExists409(res, like, "Post like");
+    if (existingLike) return;
 
-    if (existingLike) {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "Post like already exists",
-        },
-      });
-      return;
-    }
-
-    const like = await prisma.post_likes.create({
+    const createdLike = await prisma.post_likes.create({
       data: {
         post_id: Number(postId),
         user_id: Number(userId),
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        like,
-      },
-    });
+    status200Send(res, createdLike);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const getPostLikeByUserId = async (req: Request, res: Response) => {
   const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
     const post_likes = await prisma.post_likes.findMany({
       where: {
         user_id: Number(userId),
       },
     });
-    if (!post_likes) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Post likes not found",
-        },
-      });
-      return;
-    }
-    res.status(200).json({
-      data: {
-        status: 200,
-        post_likes,
-      },
-    });
+    const postLikes = await checkThingExists404(res, post_likes, "post Likes");
+    if (!postLikes) return;
+
+    status200Send(res, post_likes);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const getPostLikeByPostId = async (req: Request, res: Response) => {
   const { postId } = req.body;
   try {
-    const existingPost = await prisma.posts.findUnique({
+    const post = await prisma.posts.findUnique({
       where: {
         id: Number(postId),
       },
     });
-    if (!existingPost) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Post not found",
-        },
-      });
-      return;
-    }
-    const post_likes = await prisma.post_likes.findMany({
+    const existingPost = await checkThingExists404(res, post, "Post");
+    if (!existingPost) return;
+
+    const postLikes = await prisma.post_likes.findMany({
       where: {
         post_id: Number(postId),
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        post_likes,
-      },
-    });
+    status200Send(res, postLikes);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const deletePostLike = async (req: Request, res: Response): Promise<void> => {
   const { postLikeId } = req.body;
   try {
-    const existingPostLike = await prisma.post_likes.findUnique({
+    const postLike = await prisma.post_likes.findUnique({
       where: {
         id: Number(postLikeId),
       },
     });
 
-    if (!existingPostLike) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Post Like not found",
-        },
-      });
-      return;
-    }
+    const existingPostLike = await checkThingExists404(
+      res,
+      postLike,
+      "Post like"
+    );
+    if (!existingPostLike) return;
 
     await prisma.post_likes.delete({
       where: {
@@ -186,19 +113,9 @@ const deletePostLike = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Post like deleted successfully",
-      },
-    });
+    status200Message(res, "Post like deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 

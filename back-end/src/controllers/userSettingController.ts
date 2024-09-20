@@ -1,319 +1,159 @@
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import { checkUserExists } from "../../utils/helpers/checkExists.js";
+import { status200Send, status500 } from "../../utils/helpers/status.js";
 
 const getSettings = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.body;
+  const { userId } = req.body;
   try {
-    const user = await prisma.users.findUnique({ where: { id } });
-    if (!user) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const settings = await prisma.user_settings.findUnique({
       where: {
-        user_id: id,
+        user_id: userId,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        settings,
-      },
-    });
+    status200Send(res, settings);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updatedTheme = async (req: Request, res: Response) => {
-  const { id, theme } = req.body;
+  const { userId, theme } = req.body;
 
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const updatedSettings = await prisma.user_settings.update({
-      where: { user_id: Number(id) },
+      where: { user_id: Number(userId) },
       data: {
         theme,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedSettings,
-      },
-    });
+    status200Send(res, updatedSettings);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updatedNotifications = async (req: Request, res: Response) => {
-  const { id, notifications_enabled } = req.body;
+  const { userId, notifications_enabled } = req.body;
 
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const updatedSettings = await prisma.user_settings.update({
-      where: { user_id: Number(id) },
+      where: { user_id: Number(userId) },
       data: {
         notifications_enabled,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedSettings,
-      },
-    });
+    status200Send(res, updatedSettings);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updatedLanguage = async (req: Request, res: Response) => {
-  const { id, language } = req.body;
+  const { userId, language } = req.body;
 
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const updatedSettings = await prisma.user_settings.update({
-      where: { user_id: Number(id) },
+      where: { user_id: Number(userId) },
       data: {
         language,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedSettings,
-      },
-    });
+    status200Send(res, updatedSettings);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updatedProfileVisibility = async (req: Request, res: Response) => {
-  const { id, profile_visibility } = req.body;
+  const { userId, profile_visibility } = req.body;
 
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const updatedSettings = await prisma.user_settings.update({
-      where: { user_id: Number(id) },
+      where: { user_id: Number(userId) },
       data: {
         profile_visibility,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedSettings,
-      },
-    });
+    status200Send(res, updatedSettings);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updatedStatus = async (req: Request, res: Response) => {
-  const { id, status } = req.body;
+  const { userId, status } = req.body;
 
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const updatedSettings = await prisma.user_settings.update({
-      where: { user_id: Number(id) },
+      where: { user_id: Number(userId) },
       data: {
         status,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedSettings,
-      },
-    });
+    status200Send(res, updatedSettings);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updatedActivityTracking = async (req: Request, res: Response) => {
-  const { id, activity_tracking } = req.body;
-
+  const { userId, activity_tracking } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const updatedSettings = await prisma.user_settings.update({
-      where: { user_id: Number(id) },
+      where: { user_id: Number(userId) },
       data: {
         activity_tracking,
       },
     });
-
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedSettings,
-      },
-    });
+    status200Send(res, updatedSettings);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const deleteStatus = async (req: Request, res: Response) => {
-  const { id } = req.body;
-
+  const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-    }
+    const user = await checkUserExists(res, Number(userId));
+    if (!user) return;
 
     const updatedStatus = await prisma.user_settings.update({
-      where: { user_id: Number(id) },
+      where: { user_id: Number(userId) },
       data: {
         status: "",
       },
     });
-
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedStatus,
-      },
-    });
+    status200Send(res, updatedStatus);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -327,4 +167,3 @@ export {
   updatedActivityTracking,
   deleteStatus,
 };
-//TODO - CREATE MIDDLEWARES TO SIMPLIFY THE CODE

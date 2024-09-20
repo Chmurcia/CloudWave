@@ -2,6 +2,16 @@
 
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import {
+  checkThingExists404,
+  checkThingExists409,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
 
 const createFriendRequest = async (
   req: Request,
@@ -9,35 +19,13 @@ const createFriendRequest = async (
 ): Promise<void> => {
   const { senderId, receiverId, status } = req.body;
   try {
-    const existingSender = await prisma.users.findUnique({
-      where: { id: Number(senderId) },
-    });
+    const existingSender = await checkUserExists(res, senderId, "Sender");
+    if (!existingSender) return;
 
-    if (!existingSender) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Sender not found",
-        },
-      });
-      return;
-    }
+    const existingReceiver = await checkUserExists(res, receiverId, "Receiver");
+    if (!existingReceiver) return;
 
-    const existingReceiver = await prisma.users.findUnique({
-      where: { id: Number(receiverId) },
-    });
-
-    if (!existingReceiver) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Receiver not found",
-        },
-      });
-      return;
-    }
-
-    const existingRequest = await prisma.friend_requests.findUnique({
+    const request = await prisma.friend_requests.findUnique({
       where: {
         sender_id_receiver_id: {
           sender_id: Number(senderId),
@@ -46,15 +34,10 @@ const createFriendRequest = async (
       },
     });
 
-    if (existingRequest) {
-      res.status(409).json({
-        status: 409,
-        message: "Request already exists",
-      });
-      return;
-    }
+    const existingRequest = await checkThingExists409(res, request, "Request");
+    if (existingRequest) return;
 
-    const friend_request = await prisma.friend_requests.create({
+    const createdFriendRequest = await prisma.friend_requests.create({
       data: {
         sender_id: Number(senderId),
         receiver_id: Number(receiverId),
@@ -62,19 +45,9 @@ const createFriendRequest = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        friend_request,
-      },
-    });
+    status200Send(res, createdFriendRequest);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -84,48 +57,18 @@ const getFriendRequestsById = async (
 ): Promise<void> => {
   const { receiverId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(receiverId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingReceiver = await checkUserExists(res, receiverId, "Receiver");
+    if (!existingReceiver) return;
+
     const requests = await prisma.friend_requests.findMany({
       where: {
         receiver_id: Number(receiverId),
       },
     });
 
-    if (!requests) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Requests not found",
-        },
-      });
-    }
-
-    res.status(200).json({
-      data: {
-        status: 200,
-        requests,
-      },
-    });
+    status200Send(res, requests);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -135,39 +78,26 @@ const deleteFriendRequest = async (
 ): Promise<void> => {
   const { friendRequestId } = req.body;
   try {
-    const existingFriendRequest = await prisma.friend_requests.findUnique({
+    const friendRequest = await prisma.friend_requests.findUnique({
       where: {
         id: Number(friendRequestId),
       },
     });
-    if (!existingFriendRequest) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Request not found",
-        },
-      });
-      return;
-    }
+    const existingFriendRequest = await checkThingExists404(
+      res,
+      friendRequest,
+      "Request"
+    );
+    if (!existingFriendRequest) return;
 
     await prisma.friend_requests.delete({
       where: {
         id: Number(friendRequestId),
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Friend request deleted successfully",
-      },
-    });
+    status200Message(res, "Friend request deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 export { createFriendRequest, getFriendRequestsById, deleteFriendRequest };

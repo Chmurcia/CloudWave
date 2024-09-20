@@ -2,19 +2,18 @@
 
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import { checkThingExists404 } from "../../utils/helpers/checkExists.js";
 
 const createMessage = async (req: Request, res: Response) => {
   const { chatId, senderId, content } = req.body;
   try {
-    if (!content) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "No content provided",
-        },
-      });
-      return;
-    }
+    const existingContent = await checkThingExists404(res, content, "Content");
+    if (!existingContent) return;
 
     const existingChat = await prisma.chats.findUnique({
       where: {
@@ -69,19 +68,9 @@ const createMessage = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        createdMessage,
-      },
-    });
+    status200Send(res, createdMessage);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -124,19 +113,9 @@ const getMessagesByUserChatId = async (req: Request, res: Response) => {
         AND: [{ chat_id: Number(chatId) }, { sender_id: Number(senderId) }],
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        messages,
-      },
-    });
+    status200Send(res, messages);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -163,19 +142,9 @@ const getMessagesByChatId = async (req: Request, res: Response) => {
         chat_id: Number(chatId),
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        messages,
-      },
-    });
+    status200Send(res, messages);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -263,19 +232,9 @@ const updateMessage = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedMessage,
-      },
-    });
+    status200Send(res, updatedMessage);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -304,19 +263,9 @@ const deleteMessage = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Message deleted successfully",
-      },
-    });
+    status200Message(res, "Message deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 

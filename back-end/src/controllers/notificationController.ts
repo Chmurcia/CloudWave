@@ -1,5 +1,14 @@
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  checkThingExists404,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
 
 // TYPES OF NOTIFICATIONS = CHAT / COMMENT / FOLLOWER / FRIEND_REQUEST / LIKE / POST
 
@@ -30,21 +39,10 @@ const createNotification = async (
       return;
     }
 
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(userId) },
-    });
+    const existingUser = await checkUserExists(res, userId);
+    if (!existingUser) return;
 
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
-
-    const notification = await prisma.notifications.create({
+    const createdNotification = await prisma.notifications.create({
       data: {
         user_id: Number(userId),
         type,
@@ -55,19 +53,9 @@ const createNotification = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        notification,
-      },
-    });
+    status200Send(res, createdNotification);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -75,29 +63,16 @@ const getNotifications = async (req: Request, res: Response): Promise<void> => {
   try {
     const notifications = await prisma.notifications.findMany();
 
-    if (!notifications) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Notification not found",
-        },
-      });
-      return;
-    }
+    const existingNotif = await checkThingExists404(
+      res,
+      notifications,
+      "Notifications"
+    );
+    if (!existingNotif) return;
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        notifications,
-      },
-    });
+    status200Send(res, notifications);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -107,47 +82,23 @@ const getNotificationById = async (
 ): Promise<void> => {
   const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: userId },
-    });
+    const existingUser = await checkUserExists(res, userId);
+    if (!existingUser) return;
 
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
-
-    const notification = await prisma.notifications.findMany({
+    const notifications = await prisma.notifications.findMany({
       where: { user_id: Number(userId) },
     });
 
-    if (!notification) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Notifications not found",
-        },
-      });
-      return;
-    }
+    const existingNotif = await checkThingExists404(
+      res,
+      notifications,
+      "Notifications"
+    );
+    if (!existingNotif) return;
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        notification,
-      },
-    });
+    status200Send(res, notifications);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -207,29 +158,16 @@ const getNotificationRT = async (
         break;
     }
 
-    if (!referenceData) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Reference not found",
-        },
-      });
-      return;
-    }
+    const existingRefData = await checkThingExists404(
+      res,
+      referenceData,
+      "Reference"
+    );
+    if (!existingRefData) return;
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        referenceData,
-      },
-    });
+    status200Send(res, referenceData);
   } catch (error) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -244,14 +182,12 @@ const deleteNotification = async (
         id: Number(id),
       },
     });
-    if (!notification) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Notification not found",
-        },
-      });
-    }
+    const existingNotif = await checkThingExists404(
+      res,
+      notification,
+      "Notification"
+    );
+    if (!existingNotif) return;
 
     await prisma.notifications.delete({
       where: {
@@ -259,19 +195,9 @@ const deleteNotification = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Notification deleted successfully",
-      },
-    });
+    status200Message(res, "Notification deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 

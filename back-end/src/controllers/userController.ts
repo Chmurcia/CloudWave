@@ -2,89 +2,56 @@ import { Request, Response } from "express";
 import { hashPassword, comparePassword } from "../../utils/auth.utils.js";
 import prisma from "../prisma/prismaClient.js";
 import { generateToken } from "../../utils/jwt.utils.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import {
+  checkThingExists400,
+  checkThingExists404,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
 
 // GET ALL USERS
 const getAllUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const users = await prisma.users.findMany();
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        users,
-      },
-    });
+    status200Send(res, users);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching users",
-      },
-    });
+    status500(res);
   }
 };
 
 // GET USER BY ID
 const getUser = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.body;
+  const { userId } = req.body;
   try {
-    if (!id) {
-      res.status(400).json({
-        data: {
-          status: 400,
-          message: "ID is required",
-        },
-      });
-    }
-
-    const user = await prisma.users.findUnique({ where: { id: Number(id) } });
-
-    if (!user) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
-
-    res.status(200).json({
-      data: {
-        status: 200,
-        user,
-      },
+    const existingId = await checkThingExists400(res, Number(userId), "ID");
+    if (!existingId) return;
+    //
+    const user = await prisma.users.findUnique({
+      where: { id: Number(userId) },
     });
+    const existingUser = await checkThingExists404(res, user, "User");
+    if (!existingUser) return;
+    //
+    status200Send(res, user);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 // UPDATE USER
 const updateUser = async (req: Request, res: Response): Promise<void> => {
-  const { id, username, email, bio } = req.body;
+  const { userId, username, email, bio } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
     const updatedUser = await prisma.users.update({
-      where: { id: Number(id) },
+      where: { id: Number(userId) },
       data: {
         username,
         email,
@@ -92,40 +59,19 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedUser,
-      },
-    });
+    status200Send(res, updatedUser);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const deleteUser = async (req: Request, res: Response) => {
-  const { id, password } = req.body;
+  const { userId, password } = req.body;
   try {
-    const user = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    if (!user) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
-
-    const isMatch = await comparePassword(password, user.password);
+    const isMatch = await comparePassword(password, existingUser.password);
 
     if (!isMatch) {
       res.status(401).json({
@@ -138,105 +84,53 @@ const deleteUser = async (req: Request, res: Response) => {
     }
 
     await prisma.users.delete({
-      where: { id: Number(id) },
+      where: { id: Number(userId) },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "User deleted successfully",
-      },
-    });
+    status200Message(res, "User deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 // UPDATE AVATAR
 const updateAvatar = async (req: Request, res: Response) => {
-  const { id, avatar_url } = req.body;
+  const { userId, avatar_url } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
     const updatedUser = await prisma.users.update({
-      where: { id: Number(id) },
+      where: { id: Number(userId) },
       data: {
         avatar_url,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedUser,
-      },
-    });
+    status200Send(res, updatedUser);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 // IMPORTANT - Y0U D0N'T HAVE T0 MAINTAIN NO_AVATAR CASE, IT WILL BE MAINTAINED 0N FR0NT-END. THERE W0N'T BE ANY WAY T0 SEND EMPTY STRING AS AN AVATAR URL
 // DELETE AVATAR
 const deleteAvatar = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.body;
+  const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
     const updatedUser = await prisma.users.update({
-      where: { id: Number(id) },
+      where: { id: Number(userId) },
       data: {
         avatar_url: null,
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedUser,
-      },
-    });
+    status200Send(res, updatedUser);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
