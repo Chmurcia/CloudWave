@@ -1,46 +1,34 @@
 /// CREATE | READ | UPDATE | DELETE ///
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import {
+  checkThingExists400,
+  checkThingExists404,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
 
 const createComment = async (req: Request, res: Response): Promise<void> => {
   const { userId, postId, content, imageUrl, videoUrl } = req.body;
   try {
-    if (!content) {
-      res.status(400).json({
-        data: {
-          status: 400,
-          message: "Content not provided",
-        },
-      });
-    }
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingContent = await checkThingExists400(res, content, "Content");
+    if (!existingContent) return;
 
-    const existingPost = await prisma.posts.findUnique({
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
+    const post = await prisma.posts.findUnique({
       where: {
         id: Number(postId),
       },
     });
-    if (!existingPost) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Post not found",
-        },
-      });
-    }
+
+    const existingPost = await checkThingExists404(res, post, "Post");
+    if (!existingPost) return;
 
     const createdComment = await prisma.comments.create({
       data: {
@@ -52,19 +40,9 @@ const createComment = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        createdComment,
-      },
-    });
+    status200Send(res, createdComment);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -74,39 +52,24 @@ const getCommentsByPostId = async (
 ): Promise<void> => {
   const { postId } = req.body;
   try {
-    const existingPost = await prisma.posts.findUnique({
+    const post = await prisma.posts.findUnique({
       where: {
         id: Number(postId),
       },
     });
-    if (!existingPost) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Post not found",
-        },
-      });
-      return;
-    }
+
+    const existingPost = await checkThingExists404(res, post, "Post");
+    if (!existingPost) return;
 
     const comments = await prisma.comments.findMany({
       where: {
         post_id: Number(postId),
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        comments,
-      },
-    });
+
+    status200Send(res, comments);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -116,21 +79,14 @@ const getCommentsByUserId = async (
 ): Promise<void> => {
   const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
+    const user = await prisma.users.findUnique({
       where: {
         id: Number(userId),
       },
     });
+    const existingUser = await checkThingExists404(res, user, "User");
 
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    if (!existingUser) return;
 
     const comments = await prisma.comments.findMany({
       where: {
@@ -138,58 +94,32 @@ const getCommentsByUserId = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        comments,
-      },
-    });
+    status200Send(res, comments);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const deleteComment = async (req: Request, res: Response): Promise<void> => {
   const { commentId } = req.body;
   try {
-    const existingComment = await prisma.comments.findUnique({
+    const comment = await prisma.comments.findUnique({
       where: {
         id: Number(commentId),
       },
     });
-    if (!existingComment) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Comment not found",
-        },
-      });
-      return;
-    }
+    const existingComment = await checkThingExists404(res, comment, "Comment");
+    if (!existingComment) return;
 
     await prisma.comments.delete({
       where: {
         id: Number(commentId),
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Comment deleted successfully",
-      },
-    });
+
+    status200Message(res, "Comment deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
