@@ -3,7 +3,10 @@
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
 import { status200Send, status500 } from "../../utils/helpers/status.js";
-import { checkThingExists404 } from "../../utils/helpers/checkExists.js";
+import {
+  checkThingExists400,
+  checkThingExists404,
+} from "../../utils/helpers/checkExists.js";
 
 const getChatSettings = async (req: Request, res: Response): Promise<void> => {
   const { chatId } = req.body;
@@ -41,7 +44,7 @@ const updateChatSettings = async (
     messageHisDur,
   } = req.body;
   try {
-    const existingInfo = await checkThingExists404(
+    const existingInfo = await checkThingExists400(
       res,
       !chatName || !maxParticipants || isPrivate === null || !messageHisDur,
       "Important information"
