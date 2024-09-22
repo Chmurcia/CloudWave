@@ -1,6 +1,16 @@
 /// CREATE | READ | DELETE ///
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  checkThingExists404,
+  checkThingExists409,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
 
 const createCommentLike = async (
   req: Request,
@@ -8,49 +18,25 @@ const createCommentLike = async (
 ): Promise<void> => {
   const { commentId, userId } = req.body;
   try {
-    const existingComment = await prisma.comments.findUnique({
+    const comment = await prisma.comments.findUnique({
       where: {
         id: Number(commentId),
       },
     });
-    if (!existingComment) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Comment not found",
-        },
-      });
-      return;
-    }
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
 
-    const existingLike = await prisma.comment_likes.findFirst({
+    const existingComment = await checkThingExists404(res, comment, "Comment");
+    if (!existingComment) return;
+
+    const existingUser = checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
+    const like = await prisma.comment_likes.findFirst({
       where: {
         AND: [{ comment_id: Number(commentId) }, { user_id: Number(userId) }],
       },
     });
-    if (existingLike) {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "Like already exists",
-        },
-      });
-      return;
-    }
+    const existingLike = await checkThingExists409(res, like, "Comment like");
+    if (existingLike) return;
 
     const createdCommentLike = await prisma.comment_likes.create({
       data: {
@@ -59,19 +45,9 @@ const createCommentLike = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        createdCommentLike,
-      },
-    });
+    status200Send(res, createdCommentLike);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -81,20 +57,15 @@ const getCommentLikesByCommentId = async (
 ): Promise<void> => {
   const { commentId } = req.body;
   try {
-    const existingComment = await prisma.comments.findUnique({
+    const comment = await prisma.comments.findUnique({
       where: {
         id: Number(commentId),
       },
     });
-    if (!existingComment) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Comment not found",
-        },
-      });
-      return;
-    }
+
+    const existingComment = await checkThingExists404(res, comment, "Comments");
+
+    if (!existingComment) return;
 
     const commentLikes = await prisma.comment_likes.findMany({
       where: {
@@ -102,19 +73,9 @@ const getCommentLikesByCommentId = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        commentLikes,
-      },
-    });
+    status200Send(res, commentLikes);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -124,39 +85,18 @@ const getCommentLikesByUserId = async (
 ): Promise<void> => {
   const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
     const commentLikes = await prisma.comment_likes.findMany({
       where: {
         user_id: Number(userId),
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        commentLikes,
-      },
-    });
+
+    status200Send(res, commentLikes);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -164,15 +104,29 @@ const deleteCommentLike = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const {} = req.body;
+  const { commentLikeId } = req.body;
   try {
-  } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
+    const commentLike = await prisma.message_likes.findUnique({
+      where: {
+        id: Number(commentLikeId),
       },
     });
+    const existingCommentLike = checkThingExists404(
+      res,
+      commentLike,
+      "Comment like"
+    );
+    if (!existingCommentLike) return;
+
+    await prisma.message_likes.delete({
+      where: {
+        id: Number(commentLikeId),
+      },
+    });
+
+    status200Message(res, "Comment like successfully deleted");
+  } catch (err) {
+    status500(res);
   }
 };
 
