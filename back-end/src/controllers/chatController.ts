@@ -2,6 +2,17 @@
 
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import {
+  checkThingExists400,
+  checkThingExists404,
+  checkThingExists409,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
 
 // chatId, userId, role
 
@@ -16,29 +27,20 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
     messageHisDur,
   } = req.body;
   try {
-    if (!chatName || !maxParticipants || isPrivate === null || !messageHisDur) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Required informations not provided",
-        },
-      });
-      return;
-    }
-    const existingOwner = await prisma.users.findUnique({
+    const existingInfo = await checkThingExists400(
+      res,
+      !chatName || !maxParticipants || isPrivate === null || !messageHisDur,
+      "Import info"
+    );
+    if (!existingInfo) return;
+
+    const owner = await prisma.users.findUnique({
       where: {
         id: Number(ownerId),
       },
     });
-    if (!existingOwner) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Owner not found",
-        },
-      });
-      return;
-    }
+    const existingOwner = await checkThingExists404(res, owner, "Owner");
+    if (!existingOwner) return;
 
     const createdChat = await prisma.chats.create({
       data: {
@@ -69,39 +71,19 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
         role: "owner",
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        createdChat,
-      },
-    });
+
+    status200Send(res, createdChat);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const getChatsById = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
     const chats = await prisma.chats.findMany({
       where: {
         chat_users: {
@@ -112,58 +94,32 @@ const getChatsById = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        chats,
-      },
-    });
+    status200Send(res, chats);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const deleteChat = async (req: Request, res: Response): Promise<void> => {
   const { chatId } = req.body;
   try {
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     await prisma.chats.delete({
       where: {
         id: Number(chatId),
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Chat deleted successfully",
-      },
-    });
+
+    status200Message(res, "Chat deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
