@@ -2,13 +2,22 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import path from "path";
 import url from "url";
+import cors from "cors";
 
 import { setupRoutes } from "../utils/setupRoutes.js";
 
 dotenv.config();
 
+const allowedOrigin = "http:/localhost:3000";
+
 const PORT = process.env.PORT || 8081;
 const app = express();
+
+app.use(
+  cors({
+    origin: allowedOrigin,
+  })
+);
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
