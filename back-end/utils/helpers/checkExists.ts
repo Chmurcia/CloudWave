@@ -55,7 +55,7 @@ const checkThingExists404 = async <T>(
 
 const checkThingExists409 = async <T>(
   res: Response,
-  thing: T,
+  thing: T | null,
   thingName: string
 ) => {
   if (thing) {
