@@ -29,14 +29,15 @@ model blocked_users {
 }
 
 model chat_settings {
-  id                       Int     @id @default(autoincrement())
+  id                       Int      @id @default(autoincrement())
   chat_id                  Int?
-  chat_name                String  @db.VarChar(255)
+  chat_name                String   @db.VarChar(255)
   max_participants         Int
   description              String?
   is_private               Boolean
-  message_history_duration String? @db.VarChar(10)
-  chats                    chats?  @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  message_history_duration String?  @db.VarChar(10)
+  is_2                     Boolean?
+  chats                    chats?   @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model chat_users {
@@ -63,16 +64,18 @@ model chats {
 }
 
 model comments {
-  id            Int             @id @default(autoincrement())
-  user_id       Int?
-  post_id       Int?
-  content       String
-  image_url     String?         @db.VarChar(255)
-  video_url     String?         @db.VarChar(255)
-  created_at    DateTime?       @default(now()) @db.Timestamp(6)
-  comment_likes comment_likes[]
-  posts         posts?          @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users         users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               Int                @id @default(autoincrement())
+  user_id          Int?
+  post_id          Int?
+  content          String
+  image_url        String?            @db.VarChar(255)
+  video_url        String?            @db.VarChar(255)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  comment_dislikes comment_dislikes[]
+  comment_likes    comment_likes[]
+  posts            posts?             @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  replies          replies[]
 }
 
 model followers {
@@ -136,6 +139,7 @@ model messages {
   updated_at          DateTime?             @default(now()) @db.Timestamp(6)
   is_read             Boolean?              @default(false)
   message_attachments message_attachments[]
+  message_dislikes    message_dislikes[]
   message_likes       message_likes[]
   chats               chats?                @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users               users?                @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -155,15 +159,17 @@ model notifications {
 }
 
 model posts {
-  id         Int          @id @default(autoincrement())
-  user_id    Int?
-  content    String
-  image_url  String?      @db.VarChar(255)
-  video_url  String?      @db.VarChar(255)
-  created_at DateTime?    @default(now()) @db.Timestamp(6)
-  comments   comments[]
-  post_likes post_likes[]
-  users      users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id            Int             @id @default(autoincrement())
+  user_id       Int?
+  content       String
+  image_url     String?         @db.VarChar(255)
+  video_url     String?         @db.VarChar(255)
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  is_shared     Boolean?
+  comments      comments[]
+  post_dislikes post_dislikes[]
+  post_likes    post_likes[]
+  users         users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model user_settings {
@@ -174,6 +180,7 @@ model user_settings {
   profile_visibility    String?  @default("public") @db.VarChar(50)
   status                String?  @db.VarChar(50)
   activity_tracking     Boolean? @default(false)
+  view_perm_enabled     Boolean? @default(false)
   users                 users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -186,12 +193,20 @@ model users {
   avatar_url                                         String?              @db.VarChar(255)
   created_at                                         DateTime?            @default(now()) @db.Timestamp(6)
   role                                               String               @default("user") @db.VarChar(50)
+  country                                            String?              @db.VarChar(100)
+  date_of_birth                                      DateTime?            @db.Date
+  first_name                                         String?              @db.VarChar(100)
+  last_name                                          String?              @db.VarChar(100)
+  background_image_url                               String?              @db.VarChar(255)
   activity_logs                                      activity_logs[]
   blocked_users_blocked_users_blocked_user_idTousers blocked_users[]      @relation("blocked_users_blocked_user_idTousers")
   blocked_users_blocked_users_user_idTousers         blocked_users[]      @relation("blocked_users_user_idTousers")
+  can_see_posts_can_see_posts_viewed_idTousers       can_see_posts[]      @relation("can_see_posts_viewed_idTousers")
+  can_see_posts_can_see_posts_viewer_idTousers       can_see_posts[]      @relation("can_see_posts_viewer_idTousers")
   chat_user_settings                                 chat_user_settings[]
   chat_users                                         chat_users[]
   chats                                              chats[]
+  comment_dislikes                                   comment_dislikes[]
   comment_likes                                      comment_likes[]
   comments                                           comments[]
   followers_followers_follower_idTousers             followers[]          @relation("followers_follower_idTousers")
@@ -200,12 +215,20 @@ model users {
   friend_requests_friend_requests_sender_idTousers   friend_requests[]    @relation("friend_requests_sender_idTousers")
   friends_friends_friend_idTousers                   friends[]            @relation("friends_friend_idTousers")
   friends_friends_user_idTousers                     friends[]            @relation("friends_user_idTousers")
+  is_private                                         is_private?
+  message_dislikes                                   message_dislikes[]
   message_likes                                      message_likes[]
   messages                                           messages[]
   notifications_notifications_triggered_byTousers    notifications[]      @relation("notifications_triggered_byTousers")
   notifications                                      notifications[]
+  post_dislikes                                      post_dislikes[]
   post_likes                                         post_likes[]
   posts                                              posts[]
+  replies                                            replies[]
+  reply_dislikes                                     reply_dislikes[]
+  reply_likes                                        reply_likes[]
+  reports_reports_reported_idTousers                 reports[]            @relation("reports_reported_idTousers")
+  reports_reports_reporter_idTousers                 reports[]            @relation("reports_reporter_idTousers")
   user_settings                                      user_settings?
 }
 
@@ -244,4 +267,105 @@ model post_likes {
   users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([post_id, user_id])
+}
+
+model can_see_posts {
+  id                                   Int       @id @default(autoincrement())
+  viewer_id                            Int?
+  viewed_id                            Int?
+  created_at                           DateTime? @default(now()) @db.Timestamp(6)
+  users_can_see_posts_viewed_idTousers users?    @relation("can_see_posts_viewed_idTousers", fields: [viewed_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_can_see_posts_viewer_idTousers users?    @relation("can_see_posts_viewer_idTousers", fields: [viewer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model comment_dislikes {
+  id         Int       @id @default(autoincrement())
+  comment_id Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  comments   comments? @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([comment_id, user_id], map: "unique_comment_dislike")
+}
+
+model is_private {
+  id        Int     @id @default(autoincrement())
+  user_id   Int     @unique(map: "unique_user_privacy_settings")
+  info      Boolean @default(true)
+  friends   Boolean @default(true)
+  profile   Boolean @default(false)
+  following Boolean @default(true)
+  followers Boolean @default(false)
+  users     users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model message_dislikes {
+  id         Int       @id @default(autoincrement())
+  message_id Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  messages   messages? @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([message_id, user_id], map: "unique_message_dislike")
+}
+
+model post_dislikes {
+  id         Int       @id @default(autoincrement())
+  post_id    Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, user_id], map: "unique_post_dislike")
+}
+
+model replies {
+  id             Int              @id @default(autoincrement())
+  user_id        Int?
+  comment_id     Int?
+  content        String
+  image_url      String?
+  video_url      String?
+  created_at     DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamp(6)
+  comments       comments?        @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reply_dislikes reply_dislikes[]
+  reply_likes    reply_likes[]
+}
+
+model reply_dislikes {
+  id         Int       @id @default(autoincrement())
+  reply_id   Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  replies    replies?  @relation(fields: [reply_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([reply_id, user_id], map: "unique_reply_dislike")
+}
+
+model reply_likes {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  reply_id   Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  replies    replies?  @relation(fields: [reply_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model reports {
+  id                               Int       @id @default(autoincrement())
+  reporter_id                      Int?
+  reported_id                      Int?
+  type                             String    @db.VarChar(50)
+  reference_id                     Int
+  reason                           String
+  created_at                       DateTime? @default(now()) @db.Timestamp(6)
+  status                           String?   @default("pending") @db.VarChar(20)
+  users_reports_reported_idTousers users?    @relation("reports_reported_idTousers", fields: [reported_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_reports_reporter_idTousers users?    @relation("reports_reporter_idTousers", fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
