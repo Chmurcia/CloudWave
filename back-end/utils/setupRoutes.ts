@@ -15,7 +15,7 @@ import { logRouter } from "../src/routes/activityLogsRoutes.js";
 
 export const setupRoutes = (app: Router) => {
   const routers = {
-    "api/users": userRouter,
+    "/api/users": userRouter,
     "/api/auth": authRouter,
     "/api/tokens": tokenRouter,
     "/api/settings": settingRouter,
