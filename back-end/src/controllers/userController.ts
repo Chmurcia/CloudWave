@@ -45,7 +45,16 @@ const getUser = async (req: Request, res: Response): Promise<void> => {
 
 // UPDATE USER
 const updateUser = async (req: Request, res: Response): Promise<void> => {
-  const { userId, username, email, bio } = req.body;
+  const {
+    userId,
+    username,
+    firstName,
+    lastName,
+    email,
+    bio,
+    dateOfBirth,
+    country,
+  } = req.body;
   try {
     const existingUser = await checkUserExists(res, Number(userId));
     if (!existingUser) return;
@@ -54,8 +63,12 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
       where: { id: Number(userId) },
       data: {
         username,
+        first_name: firstName,
+        last_name: lastName,
         email,
         bio,
+        date_of_birth: dateOfBirth,
+        country,
       },
     });
 
@@ -65,6 +78,7 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// DELETE USER
 const deleteUser = async (req: Request, res: Response) => {
   const { userId, password } = req.body;
   try {
@@ -104,6 +118,26 @@ const updateAvatar = async (req: Request, res: Response) => {
       where: { id: Number(userId) },
       data: {
         avatar_url,
+      },
+    });
+
+    status200Send(res, updatedUser);
+  } catch (err) {
+    status500(res);
+  }
+};
+
+// UPDATE BACKGROUND IMAGE
+const updateBgImage = async (req: Request, res: Response) => {
+  const { userId, background_image_url } = req.body;
+  try {
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
+    const updatedUser = await prisma.users.update({
+      where: { id: Number(userId) },
+      data: {
+        background_image_url,
       },
     });
 
