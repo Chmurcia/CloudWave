@@ -12,6 +12,7 @@ import { followerRouter } from "../src/routes/followerRoutes.js";
 import { commentRouter } from "../src/routes/commentRoutes.js";
 import { chatRouter } from "../src/routes/chatRoutes.js";
 import { logRouter } from "../src/routes/activityLogsRoutes.js";
+import { reportRouter } from "../src/routes/reportRoutes.js";
 
 export const setupRoutes = (app: Router) => {
   const routers = {
@@ -27,6 +28,7 @@ export const setupRoutes = (app: Router) => {
     "/api/comments": commentRouter,
     "/api/chats": chatRouter,
     "/api/activity-logs": logRouter,
+    "/api/reports": reportRouter,
   };
 
   Object.entries(routers).forEach(([path, router]) => {
