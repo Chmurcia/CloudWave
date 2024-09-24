@@ -14,15 +14,20 @@ import {
 } from "../../utils/helpers/checkExists.js";
 
 enum logType {
-  "LIKE_POST",
   "COMMENT",
   "LIKE_COMMENT",
+  "DISLIKE_COMMENT", //
+  "LIKE_POST",
+  "DISLIKE_POST", //
   "LIKE_MESSAGE",
+  "DISLIKE_MESSAGE", //
   "FOLLOWING",
   "FRIEND_ACCEPTED",
   "FRIEND_REJECTED",
   "BLOCKED",
   "POST",
+  "LOGIN", //
+  "CHANGE", //
 }
 
 const createActivityLog = async (
@@ -117,6 +122,11 @@ const getActivityLogRT = async (req: Request, res: Response): Promise<void> => {
           where: { id: Number(referenceId) },
         });
         break;
+      case "DISLIKE_POST":
+        referenceData = await prisma.posts.findUnique({
+          where: { id: Number(referenceId) },
+        });
+        break;
       case "COMMENT":
         referenceData = await prisma.comments.findUnique({
           where: { id: Number(referenceId) },
@@ -147,7 +157,19 @@ const getActivityLogRT = async (req: Request, res: Response): Promise<void> => {
           select: { message_id: true },
         });
         break;
+      case "DISLIKE_MESSAGE":
+        referenceData = await prisma.message_likes.findUnique({
+          where: { id: Number(referenceId) },
+          select: { message_id: true },
+        });
+        break;
       case "LIKE_COMMENT":
+        referenceData = await prisma.comment_likes.findUnique({
+          where: { id: Number(referenceId) },
+          select: { comment_id: true },
+        });
+        break;
+      case "DISLIKE_COMMENT":
         referenceData = await prisma.comment_likes.findUnique({
           where: { id: Number(referenceId) },
           select: { comment_id: true },
@@ -161,6 +183,16 @@ const getActivityLogRT = async (req: Request, res: Response): Promise<void> => {
         break;
       case "POST":
         referenceData = await prisma.posts.findUnique({
+          where: { id: Number(referenceId) },
+        });
+        break;
+      case "LOGIN":
+        referenceData = await prisma.logins.findUnique({
+          where: { id: Number(referenceId) },
+        });
+        break;
+      case "CHANGE":
+        referenceData = await prisma.users.findUnique({
           where: { id: Number(referenceId) },
         });
         break;
