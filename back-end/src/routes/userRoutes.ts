@@ -12,6 +12,12 @@ import {
   deleteBlockedUsers,
   getBlockedUsers,
 } from "../controllers/blockedUserController.js";
+import {
+  createExtLink,
+  deleteExtLink,
+  getExtLinksByUserId,
+  updateExtLink,
+} from "../controllers/externalLinkController.js";
 
 const router = Router();
 
@@ -24,4 +30,13 @@ router
   .post(createBlockedUser)
   .get(getBlockedUsers)
   .delete(deleteBlockedUsers);
+
+router
+  .route("/link")
+  .post(createExtLink)
+  .put(updateExtLink)
+  .delete(deleteExtLink);
+
+router.route("/link/get-by-user-id").get(getExtLinksByUserId);
+
 export { router as userRouter };
