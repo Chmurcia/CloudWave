@@ -25,6 +25,7 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
     description,
     isPrivate,
     messageHisDur,
+    is2,
   } = req.body;
   try {
     const existingInfo = await checkThingExists400(
@@ -56,6 +57,7 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
         description,
         is_private: isPrivate,
         message_history_duration: messageHisDur,
+        is_2: is2,
       },
     });
     await prisma.chat_users.create({
