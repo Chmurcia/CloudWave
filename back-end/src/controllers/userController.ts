@@ -74,7 +74,10 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
 
     status200Send(res, updatedUser);
   } catch (err) {
-    status500(res);
+    // status500(res);
+    res.status(500).json({
+      err,
+    });
   }
 };
 
