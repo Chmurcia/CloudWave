@@ -209,6 +209,7 @@ model users {
   comment_dislikes                                   comment_dislikes[]
   comment_likes                                      comment_likes[]
   comments                                           comments[]
+  ext_links                                          ext_links[]
   followers_followers_follower_idTousers             followers[]          @relation("followers_follower_idTousers")
   followers_followers_following_idTousers            followers[]          @relation("followers_following_idTousers")
   friend_requests_friend_requests_receiver_idTousers friend_requests[]    @relation("friend_requests_receiver_idTousers")
@@ -216,6 +217,7 @@ model users {
   friends_friends_friend_idTousers                   friends[]            @relation("friends_friend_idTousers")
   friends_friends_user_idTousers                     friends[]            @relation("friends_user_idTousers")
   is_private                                         is_private?
+  logins                                             logins[]
   message_dislikes                                   message_dislikes[]
   message_likes                                      message_likes[]
   messages                                           messages[]
@@ -227,9 +229,13 @@ model users {
   replies                                            replies[]
   reply_dislikes                                     reply_dislikes[]
   reply_likes                                        reply_likes[]
+  reports_reports_answered_byTousers                 reports[]            @relation("reports_answered_byTousers")
   reports_reports_reported_idTousers                 reports[]            @relation("reports_reported_idTousers")
   reports_reports_reporter_idTousers                 reports[]            @relation("reports_reporter_idTousers")
   user_settings                                      user_settings?
+  user_warnings_user_warnings_gave_byTousers         user_warnings[]      @relation("user_warnings_gave_byTousers")
+  user_warnings_user_warnings_updated_byTousers      user_warnings[]      @relation("user_warnings_updated_byTousers")
+  user_warnings_user_warnings_user_idTousers         user_warnings[]      @relation("user_warnings_user_idTousers")
 }
 
 model chat_user_settings {
@@ -366,6 +372,45 @@ model reports {
   reason                           String
   created_at                       DateTime? @default(now()) @db.Timestamp(6)
   status                           String?   @default("pending") @db.VarChar(20)
+  answer                           String?
+  answered_by                      Int?
+  users_reports_answered_byTousers users?    @relation("reports_answered_byTousers", fields: [answered_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_reports_reported_idTousers users?    @relation("reports_reported_idTousers", fields: [reported_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_reports_reporter_idTousers users?    @relation("reports_reporter_idTousers", fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model logins {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?
+  login_time  DateTime? @default(now()) @db.Timestamp(6)
+  ip_address  String?   @db.VarChar(45)
+  device_info String?
+  successful  Boolean?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, login_time], map: "unique_login_per_user")
+}
+
+model ext_links {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?
+  url         String
+  description String?   @db.VarChar(500)
+  icon        String?   @db.VarChar(30)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_warnings {
+  id                                    Int       @id @default(autoincrement())
+  user_id                               Int?
+  warning                               String?   @db.VarChar(1000)
+  gave_by                               Int?
+  updated_by                            Int?
+  created_at                            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at                            DateTime? @db.Timestamp(6)
+  users_user_warnings_gave_byTousers    users?    @relation("user_warnings_gave_byTousers", fields: [gave_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_user_warnings_updated_byTousers users?    @relation("user_warnings_updated_byTousers", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_user_warnings_user_idTousers    users?    @relation("user_warnings_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
