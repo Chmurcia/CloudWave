@@ -12,7 +12,7 @@ import {
 
 const createPost = async (req: Request, res: Response) => {
   try {
-    const { userId, content, image_url, video_url } = req.body;
+    const { userId, content, image_url, video_url, isShared } = req.body;
 
     const existingUser = await checkUserExists(res, Number(userId));
     if (!existingUser) return;
@@ -23,6 +23,7 @@ const createPost = async (req: Request, res: Response) => {
         content,
         image_url,
         video_url,
+        is_shared: isShared,
       },
     });
 
