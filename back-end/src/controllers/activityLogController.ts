@@ -2,17 +2,32 @@
 
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import {
+  checkThingExists400,
+  checkThingExists404,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
 
 enum logType {
-  "LIKE_POST",
   "COMMENT",
   "LIKE_COMMENT",
+  "DISLIKE_COMMENT", //
+  "LIKE_POST",
+  "DISLIKE_POST", //
   "LIKE_MESSAGE",
+  "DISLIKE_MESSAGE", //
   "FOLLOWING",
   "FRIEND_ACCEPTED",
   "FRIEND_REJECTED",
   "BLOCKED",
   "POST",
+  "LOGIN", //
+  "CHANGE", //
 }
 
 const createActivityLog = async (
@@ -21,6 +36,9 @@ const createActivityLog = async (
 ): Promise<void> => {
   const { userId, referenceId, type, details } = req.body;
   try {
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
     if (!Object.values(logType).includes(type)) {
       res.status(400).json({
         data: {
@@ -30,28 +48,9 @@ const createActivityLog = async (
       });
       return;
     }
-    if (!details) {
-      res.status(400).json({
-        data: {
-          status: 400,
-          message: "Details not provided!",
-        },
-      });
-    }
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingDetails = await checkThingExists400(res, details, "Details");
+    if (!existingDetails) return;
+
     const activityLog = await prisma.activity_logs.create({
       data: {
         user_id: Number(userId),
@@ -60,19 +59,9 @@ const createActivityLog = async (
         details,
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        activityLog,
-      },
-    });
+    status200Send(res, activityLog);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -82,39 +71,18 @@ const getActivityLogsById = async (
 ): Promise<void> => {
   const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
     const activityLogs = await prisma.activity_logs.findMany({
       where: {
         user_id: Number(userId),
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        activityLogs,
-      },
-    });
+    status200Send(res, activityLogs);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -124,39 +92,23 @@ const deleteActivityLog = async (
 ): Promise<void> => {
   const { logId } = req.body;
   try {
-    const existingLog = await prisma.activity_logs.findUnique({
+    const log = await prisma.activity_logs.findUnique({
       where: {
         id: Number(logId),
       },
     });
-    if (!existingLog) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Log not found",
-        },
-      });
-      return;
-    }
+    const existingLog = await checkThingExists404(res, log, "Log");
+    if (!existingLog) return;
+
     await prisma.activity_logs.delete({
       where: {
         id: Number(logId),
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Activity log deleted successfully",
-      },
-    });
+    status200Message(res, "Activity log deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -166,6 +118,11 @@ const getActivityLogRT = async (req: Request, res: Response): Promise<void> => {
     let referenceData;
     switch (type) {
       case "LIKE_POST":
+        referenceData = await prisma.posts.findUnique({
+          where: { id: Number(referenceId) },
+        });
+        break;
+      case "DISLIKE_POST":
         referenceData = await prisma.posts.findUnique({
           where: { id: Number(referenceId) },
         });
@@ -200,7 +157,19 @@ const getActivityLogRT = async (req: Request, res: Response): Promise<void> => {
           select: { message_id: true },
         });
         break;
+      case "DISLIKE_MESSAGE":
+        referenceData = await prisma.message_likes.findUnique({
+          where: { id: Number(referenceId) },
+          select: { message_id: true },
+        });
+        break;
       case "LIKE_COMMENT":
+        referenceData = await prisma.comment_likes.findUnique({
+          where: { id: Number(referenceId) },
+          select: { comment_id: true },
+        });
+        break;
+      case "DISLIKE_COMMENT":
         referenceData = await prisma.comment_likes.findUnique({
           where: { id: Number(referenceId) },
           select: { comment_id: true },
@@ -217,31 +186,28 @@ const getActivityLogRT = async (req: Request, res: Response): Promise<void> => {
           where: { id: Number(referenceId) },
         });
         break;
+      case "LOGIN":
+        referenceData = await prisma.logins.findUnique({
+          where: { id: Number(referenceId) },
+        });
+        break;
+      case "CHANGE":
+        referenceData = await prisma.users.findUnique({
+          where: { id: Number(referenceId) },
+        });
+        break;
     }
 
-    if (!referenceData) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Reference not found",
-        },
-      });
-      return;
-    }
+    const existingRefData = await checkThingExists404(
+      res,
+      referenceData,
+      "Reference"
+    );
+    if (!existingRefData) return;
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        referenceData,
-      },
-    });
+    status200Send(res, referenceData);
   } catch (error) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -251,39 +217,18 @@ const deleteActivityLogs = async (
 ): Promise<void> => {
   const { userId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
+
     await prisma.activity_logs.deleteMany({
       where: {
         user_id: Number(userId),
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "Activity logs deleted succesfully",
-      },
-    });
+    status200Message(res, "Activity logs deleted successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 

@@ -29,18 +29,21 @@ model blocked_users {
 }
 
 model chat_settings {
-  id            Int    @id @default(autoincrement())
-  chat_id       Int?
-  setting_name  String @db.VarChar(255)
-  setting_value String @db.VarChar(255)
-  chats         chats? @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                       Int      @id @default(autoincrement())
+  chat_id                  Int?
+  chat_name                String   @db.VarChar(255)
+  max_participants         Int
+  description              String?
+  is_private               Boolean
+  message_history_duration String?  @db.VarChar(10)
+  is_2                     Boolean?
+  chats                    chats?   @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model chat_users {
   id        Int       @id @default(autoincrement())
   chat_id   Int?
   user_id   Int?
-  role      String    @db.VarChar(50)
   joined_at DateTime? @default(now()) @db.Timestamp(6)
   chats     chats?    @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users     users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -49,27 +52,30 @@ model chat_users {
 }
 
 model chats {
-  id            Int             @id @default(autoincrement())
-  user_id       Int?
-  name          String?         @db.VarChar(255)
-  image_url     String?         @db.VarChar(255)
-  created_at    DateTime?       @default(now()) @db.Timestamp(6)
-  chat_settings chat_settings[]
-  chat_users    chat_users[]
-  users         users?          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  messages      messages[]
+  id                 Int                  @id @default(autoincrement())
+  owner_id           Int?
+  image_url          String?              @db.VarChar(255)
+  created_at         DateTime?            @default(now()) @db.Timestamp(6)
+  chat_settings      chat_settings[]
+  chat_user_settings chat_user_settings[]
+  chat_users         chat_users[]
+  users              users?               @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "chats_user_id_fkey")
+  messages           messages[]
 }
 
 model comments {
-  id         Int       @id @default(autoincrement())
-  user_id    Int?
-  post_id    Int?
-  content    String
-  image_url  String?   @db.VarChar(255)
-  video_url  String?   @db.VarChar(255)
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               Int                @id @default(autoincrement())
+  user_id          Int?
+  post_id          Int?
+  content          String
+  image_url        String?            @db.VarChar(255)
+  video_url        String?            @db.VarChar(255)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  comment_dislikes comment_dislikes[]
+  comment_likes    comment_likes[]
+  posts            posts?             @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  replies          replies[]
 }
 
 model followers {
@@ -91,6 +97,8 @@ model friend_requests {
   sent_at                                  DateTime? @default(now()) @db.Timestamp(6)
   users_friend_requests_receiver_idTousers users?    @relation("friend_requests_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_friend_requests_sender_idTousers   users?    @relation("friend_requests_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([sender_id, receiver_id], map: "unique_sender_receiver_pair")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -98,23 +106,9 @@ model friends {
   user_id                        Int?
   friend_id                      Int?
   since                          DateTime? @default(now()) @db.Timestamp(6)
-  min_user_id                    Int
-  max_user_id                    Int
+  id                             Int       @id @default(autoincrement())
   users_friends_friend_idTousers users?    @relation("friends_friend_idTousers", fields: [friend_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_friends_user_idTousers   users?    @relation("friends_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@id([min_user_id, max_user_id])
-}
-
-model likes {
-  id                         Int       @id @default(autoincrement())
-  user_id                    Int?
-  post_id                    Int?
-  created_at                 DateTime? @default(now()) @db.Timestamp(6)
-  users_likes_post_idTousers users?    @relation("likes_post_idTousers", fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users_likes_user_idTousers users?    @relation("likes_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([user_id, post_id])
 }
 
 model message_attachments {
@@ -143,33 +137,39 @@ model messages {
   content             String
   created_at          DateTime?             @default(now()) @db.Timestamp(6)
   updated_at          DateTime?             @default(now()) @db.Timestamp(6)
-  likes_count         Int?                  @default(0)
+  is_read             Boolean?              @default(false)
   message_attachments message_attachments[]
+  message_dislikes    message_dislikes[]
   message_likes       message_likes[]
   chats               chats?                @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users               users?                @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model notifications {
-  id           Int       @id @default(autoincrement())
-  user_id      Int?
-  type         String    @db.VarChar(50)
-  reference_id Int?
-  message      String?
-  is_read      Boolean?  @default(false)
-  created_at   DateTime? @default(now()) @db.Timestamp(6)
-  users        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                                      Int       @id @default(autoincrement())
+  user_id                                 Int?
+  type                                    String    @db.VarChar(50)
+  reference_id                            Int?
+  message                                 String?
+  is_read                                 Boolean?  @default(false)
+  created_at                              DateTime? @default(now()) @db.Timestamp(6)
+  triggered_by                            Int?
+  users_notifications_triggered_byTousers users?    @relation("notifications_triggered_byTousers", fields: [triggered_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                                   users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model posts {
-  id         Int        @id @default(autoincrement())
-  user_id    Int?
-  content    String
-  image_url  String?    @db.VarChar(255)
-  video_url  String?    @db.VarChar(255)
-  created_at DateTime?  @default(now()) @db.Timestamp(6)
-  comments   comments[]
-  users      users?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id            Int             @id @default(autoincrement())
+  user_id       Int?
+  content       String
+  image_url     String?         @db.VarChar(255)
+  video_url     String?         @db.VarChar(255)
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  is_shared     Boolean?
+  comments      comments[]
+  post_dislikes post_dislikes[]
+  post_likes    post_likes[]
+  users         users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model user_settings {
@@ -180,35 +180,237 @@ model user_settings {
   profile_visibility    String?  @default("public") @db.VarChar(50)
   status                String?  @db.VarChar(50)
   activity_tracking     Boolean? @default(false)
+  view_perm_enabled     Boolean? @default(false)
   users                 users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model users {
-  id                                                 Int               @id @default(autoincrement())
-  username                                           String            @unique @db.VarChar(80)
-  email                                              String            @unique @db.VarChar(100)
-  password                                           String            @db.VarChar(255)
+  id                                                 Int                  @id @default(autoincrement())
+  username                                           String               @unique @db.VarChar(80)
+  email                                              String               @unique @db.VarChar(100)
+  password                                           String               @db.VarChar(255)
   bio                                                String?
-  avatar_url                                         String?           @db.VarChar(255)
-  created_at                                         DateTime?         @default(now()) @db.Timestamp(6)
-  role                                               String            @default("user") @db.VarChar(50)
+  avatar_url                                         String?              @db.VarChar(255)
+  created_at                                         DateTime?            @default(now()) @db.Timestamp(6)
+  role                                               String               @default("user") @db.VarChar(50)
+  country                                            String?              @db.VarChar(100)
+  date_of_birth                                      DateTime?            @db.Date
+  first_name                                         String?              @db.VarChar(100)
+  last_name                                          String?              @db.VarChar(100)
+  background_image_url                               String?              @db.VarChar(255)
   activity_logs                                      activity_logs[]
-  blocked_users_blocked_users_blocked_user_idTousers blocked_users[]   @relation("blocked_users_blocked_user_idTousers")
-  blocked_users_blocked_users_user_idTousers         blocked_users[]   @relation("blocked_users_user_idTousers")
+  blocked_users_blocked_users_blocked_user_idTousers blocked_users[]      @relation("blocked_users_blocked_user_idTousers")
+  blocked_users_blocked_users_user_idTousers         blocked_users[]      @relation("blocked_users_user_idTousers")
+  can_see_posts_can_see_posts_viewed_idTousers       can_see_posts[]      @relation("can_see_posts_viewed_idTousers")
+  can_see_posts_can_see_posts_viewer_idTousers       can_see_posts[]      @relation("can_see_posts_viewer_idTousers")
+  chat_user_settings                                 chat_user_settings[]
   chat_users                                         chat_users[]
   chats                                              chats[]
+  comment_dislikes                                   comment_dislikes[]
+  comment_likes                                      comment_likes[]
   comments                                           comments[]
-  followers_followers_follower_idTousers             followers[]       @relation("followers_follower_idTousers")
-  followers_followers_following_idTousers            followers[]       @relation("followers_following_idTousers")
-  friend_requests_friend_requests_receiver_idTousers friend_requests[] @relation("friend_requests_receiver_idTousers")
-  friend_requests_friend_requests_sender_idTousers   friend_requests[] @relation("friend_requests_sender_idTousers")
-  friends_friends_friend_idTousers                   friends[]         @relation("friends_friend_idTousers")
-  friends_friends_user_idTousers                     friends[]         @relation("friends_user_idTousers")
-  likes_likes_post_idTousers                         likes[]           @relation("likes_post_idTousers")
-  likes_likes_user_idTousers                         likes[]           @relation("likes_user_idTousers")
+  ext_links                                          ext_links[]
+  followers_followers_follower_idTousers             followers[]          @relation("followers_follower_idTousers")
+  followers_followers_following_idTousers            followers[]          @relation("followers_following_idTousers")
+  friend_requests_friend_requests_receiver_idTousers friend_requests[]    @relation("friend_requests_receiver_idTousers")
+  friend_requests_friend_requests_sender_idTousers   friend_requests[]    @relation("friend_requests_sender_idTousers")
+  friends_friends_friend_idTousers                   friends[]            @relation("friends_friend_idTousers")
+  friends_friends_user_idTousers                     friends[]            @relation("friends_user_idTousers")
+  is_private                                         is_private?
+  logins                                             logins[]
+  message_dislikes                                   message_dislikes[]
   message_likes                                      message_likes[]
   messages                                           messages[]
+  notifications_notifications_triggered_byTousers    notifications[]      @relation("notifications_triggered_byTousers")
   notifications                                      notifications[]
+  post_dislikes                                      post_dislikes[]
+  post_likes                                         post_likes[]
   posts                                              posts[]
+  replies                                            replies[]
+  reply_dislikes                                     reply_dislikes[]
+  reply_likes                                        reply_likes[]
+  reports_reports_answered_byTousers                 reports[]            @relation("reports_answered_byTousers")
+  reports_reports_reported_idTousers                 reports[]            @relation("reports_reported_idTousers")
+  reports_reports_reporter_idTousers                 reports[]            @relation("reports_reporter_idTousers")
   user_settings                                      user_settings?
+  user_warnings_user_warnings_gave_byTousers         user_warnings[]      @relation("user_warnings_gave_byTousers")
+  user_warnings_user_warnings_updated_byTousers      user_warnings[]      @relation("user_warnings_updated_byTousers")
+  user_warnings_user_warnings_user_idTousers         user_warnings[]      @relation("user_warnings_user_idTousers")
+}
+
+model chat_user_settings {
+  id                    Int       @id @default(autoincrement())
+  user_id               Int
+  chat_id               Int
+  notifications_enabled Boolean?  @default(true)
+  role                  String?   @default("member") @db.VarChar(50)
+  pinned_chat           Boolean?  @default(false)
+  hidden_chat           Boolean?  @default(false)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  is_muted              Boolean?  @default(false)
+  chats                 chats     @relation(fields: [chat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model comment_likes {
+  id         Int       @id @default(autoincrement())
+  comment_id Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  comments   comments? @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([comment_id, user_id])
+}
+
+model post_likes {
+  id         Int       @id @default(autoincrement())
+  post_id    Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, user_id])
+}
+
+model can_see_posts {
+  id                                   Int       @id @default(autoincrement())
+  viewer_id                            Int?
+  viewed_id                            Int?
+  created_at                           DateTime? @default(now()) @db.Timestamp(6)
+  users_can_see_posts_viewed_idTousers users?    @relation("can_see_posts_viewed_idTousers", fields: [viewed_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_can_see_posts_viewer_idTousers users?    @relation("can_see_posts_viewer_idTousers", fields: [viewer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model comment_dislikes {
+  id         Int       @id @default(autoincrement())
+  comment_id Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  comments   comments? @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([comment_id, user_id], map: "unique_comment_dislike")
+}
+
+model is_private {
+  id        Int     @id @default(autoincrement())
+  user_id   Int     @unique(map: "unique_user_privacy_settings")
+  info      Boolean @default(true)
+  friends   Boolean @default(true)
+  profile   Boolean @default(false)
+  following Boolean @default(true)
+  followers Boolean @default(false)
+  users     users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model message_dislikes {
+  id         Int       @id @default(autoincrement())
+  message_id Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  messages   messages? @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([message_id, user_id], map: "unique_message_dislike")
+}
+
+model post_dislikes {
+  id         Int       @id @default(autoincrement())
+  post_id    Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, user_id], map: "unique_post_dislike")
+}
+
+model replies {
+  id             Int              @id @default(autoincrement())
+  user_id        Int?
+  comment_id     Int?
+  content        String
+  image_url      String?
+  video_url      String?
+  created_at     DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamp(6)
+  comments       comments?        @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reply_dislikes reply_dislikes[]
+  reply_likes    reply_likes[]
+}
+
+model reply_dislikes {
+  id         Int       @id @default(autoincrement())
+  reply_id   Int?
+  user_id    Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  replies    replies?  @relation(fields: [reply_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([reply_id, user_id], map: "unique_reply_dislike")
+}
+
+model reply_likes {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  reply_id   Int?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  replies    replies?  @relation(fields: [reply_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model reports {
+  id                               Int       @id @default(autoincrement())
+  reporter_id                      Int?
+  reported_id                      Int?
+  type                             String    @db.VarChar(50)
+  reference_id                     Int
+  reason                           String
+  created_at                       DateTime? @default(now()) @db.Timestamp(6)
+  status                           String?   @default("pending") @db.VarChar(20)
+  answer                           String?
+  answered_by                      Int?
+  users_reports_answered_byTousers users?    @relation("reports_answered_byTousers", fields: [answered_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_reports_reported_idTousers users?    @relation("reports_reported_idTousers", fields: [reported_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_reports_reporter_idTousers users?    @relation("reports_reporter_idTousers", fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model logins {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?
+  login_time  DateTime? @default(now()) @db.Timestamp(6)
+  ip_address  String?   @db.VarChar(45)
+  device_info String?
+  successful  Boolean?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, login_time], map: "unique_login_per_user")
+}
+
+model ext_links {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?
+  url         String
+  description String?   @db.VarChar(500)
+  icon        String?   @db.VarChar(30)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_warnings {
+  id                                    Int       @id @default(autoincrement())
+  user_id                               Int?
+  warning                               String?   @db.VarChar(1000)
+  gave_by                               Int?
+  updated_by                            Int?
+  created_at                            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at                            DateTime? @db.Timestamp(6)
+  users_user_warnings_gave_byTousers    users?    @relation("user_warnings_gave_byTousers", fields: [gave_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_user_warnings_updated_byTousers users?    @relation("user_warnings_updated_byTousers", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_user_warnings_user_idTousers    users?    @relation("user_warnings_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }

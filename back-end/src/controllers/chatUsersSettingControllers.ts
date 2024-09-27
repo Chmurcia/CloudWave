@@ -3,66 +3,41 @@
 
 import { Request, Response } from "express";
 import prisma from "../prisma/prismaClient.js";
+import {
+  status200Message,
+  status200Send,
+  status500,
+} from "../../utils/helpers/status.js";
+import {
+  checkThingExists404,
+  checkThingExists409,
+  checkThingCUS409,
+  checkUserExists,
+} from "../../utils/helpers/checkExists.js";
 // CUS - Chat User Settings
 
 const createCUS = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
-    const existingCUS = await prisma.chat_user_settings.findFirst({
+    const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
 
-    if (existingCUS && existingCUS.role === "banned") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "User is banned!",
-        },
-      });
-      return;
-    }
-
-    if (existingCUS) {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "CUS already exists!",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists409(res, CUS, "CUS");
+    if (existingCUS) return;
 
     const createdCUS = await prisma.chat_user_settings.create({
       data: {
@@ -71,54 +46,25 @@ const createCUS = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        createdCUS,
-      },
-    });
+    status200Send(res, createdCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const getCUSByIds = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
@@ -126,19 +72,9 @@ const getCUSByIds = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        CUS,
-      },
-    });
+    status200Send(res, CUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -148,54 +84,28 @@ const updateCUSOnHiddenChat = async (
 ): Promise<void> => {
   const { userId, chatId, hiddenChat } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         hidden_chat: hiddenChat,
@@ -203,19 +113,9 @@ const updateCUSOnHiddenChat = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -225,54 +125,28 @@ const updateCUSOnPinnedChat = async (
 ): Promise<void> => {
   const { userId, chatId, pinnedChat } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         pinned_chat: pinnedChat,
@@ -280,73 +154,37 @@ const updateCUSOnPinnedChat = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updateCUSOnNotif = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId, notificationsEnabled } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(chatId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         notifications_enabled: notificationsEnabled,
@@ -354,103 +192,62 @@ const updateCUSOnNotif = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updateCUSOnBan = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
 
-    if (CUS && CUS.role === "owner") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "Owner cannot be banned!",
-        },
-      });
-      return;
-    }
+    const CUSowner = await checkThingCUS409(
+      res,
+      CUS!.role === "owner",
+      "owner",
+      "banned"
+    );
+    if (CUSowner) return;
 
-    if (CUS && CUS.role === "moderator") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "Moderator cannot be banned!",
-        },
-      });
-      return;
-    }
+    const CUSmoderator = await checkThingCUS409(
+      res,
+      CUS!.role === "moderator",
+      "moderator",
+      "banned"
+    );
+    if (CUSmoderator) return;
 
-    if (CUS.role === "banned") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "User is already banned!",
-        },
-      });
-      return;
-    }
+    const CUSbanned = await checkThingCUS409(
+      res,
+      CUS!.role === "banned",
+      "User",
+      "banned"
+    );
+
+    if (CUSbanned) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         role: "banned",
@@ -458,83 +255,45 @@ const updateCUSOnBan = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updateCUSOnUnban = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
 
-    if (CUS.role !== "banned") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "User is not banned!",
-        },
-      });
-      return;
-    }
+    const CUSunbanned = await checkThingCUS409(
+      res,
+      CUS!.role !== "banned",
+      "User",
+      "unbanned"
+    );
+    if (CUSunbanned) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         role: "member",
@@ -542,103 +301,71 @@ const updateCUSOnUnban = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updateCUSOnMute = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
 
-    if (CUS && CUS.role === "owner") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "Owner cannot be muted!",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
 
-    if (CUS && CUS.role === "moderator") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "Moderator cannot be muted!",
-        },
-      });
-      return;
-    }
+    const CUSbanned = await checkThingCUS409(
+      res,
+      CUS!.role === "banned",
+      "User",
+      "banned"
+    );
+    if (CUSbanned) return;
 
-    if (CUS.is_muted === true) {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "User is already muted!",
-        },
-      });
-      return;
-    }
+    const CUSowner = await checkThingCUS409(
+      res,
+      CUS!.role === "owner",
+      "owner",
+      "muted"
+    );
+    if (CUSowner) return;
+
+    const CUSmoderator = await checkThingCUS409(
+      res,
+      CUS!.role === "moderator",
+      "moderator",
+      "muted"
+    );
+    if (CUSmoderator) return;
+
+    const CUSmuted = await checkThingCUS409(
+      res,
+      CUS!.is_muted === true,
+      "User",
+      "muted"
+    );
+    if (CUSmuted) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         is_muted: true,
@@ -646,19 +373,9 @@ const updateCUSOnMute = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
@@ -668,64 +385,46 @@ const updateCUSOnUnmute = async (
 ): Promise<void> => {
   const { userId, chatId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
 
-    if (CUS.is_muted === false) {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "User is not muted!",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
+
+    const CUSbanned = await checkThingCUS409(
+      res,
+      CUS!.role === "banned",
+      "User",
+      "banned"
+    );
+    if (CUSbanned) return;
+
+    const CUSunmuted = await checkThingCUS409(
+      res,
+      CUS!.is_muted === false,
+      "User",
+      "unmuted"
+    );
+
+    if (CUSunmuted) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         is_muted: false,
@@ -733,54 +432,25 @@ const updateCUSOnUnmute = async (
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const updateCUSOnRole = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId, role } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
 
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
@@ -788,28 +458,20 @@ const updateCUSOnRole = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    if (CUS && CUS.role === "banned") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "User is banned!",
-        },
-      });
-      return;
-    }
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
+
+    const CUSbanned = await checkThingCUS409(
+      res,
+      CUS!.role === "banned",
+      "User",
+      "banned"
+    );
+    if (CUSbanned) return;
 
     const updatedCUS = await prisma.chat_user_settings.update({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
       data: {
         role,
@@ -817,108 +479,60 @@ const updateCUSOnRole = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({
-      data: {
-        status: 200,
-        updatedCUS,
-      },
-    });
+    status200Send(res, updatedCUS);
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
 const deleteCUS = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId } = req.body;
   try {
-    const existingUser = await prisma.users.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
-    if (!existingUser) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "User not found",
-        },
-      });
-      return;
-    }
+    const existingUser = await checkUserExists(res, Number(userId));
+    if (!existingUser) return;
 
-    const existingChat = await prisma.chats.findUnique({
+    const chat = await prisma.chats.findUnique({
       where: {
         id: Number(chatId),
       },
     });
-    if (!existingChat) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "Chat not found",
-        },
-      });
-      return;
-    }
+    const existingChat = await checkThingExists404(res, chat, "Chat");
+    if (!existingChat) return;
+
     const CUS = await prisma.chat_user_settings.findFirst({
       where: {
         AND: [{ user_id: Number(userId) }, { chat_id: Number(chatId) }],
       },
     });
 
-    if (CUS && CUS.role === "owner") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "Owner cannot leave!",
-          addMessage: "Delete chat or give owner to someone else",
-        },
-      });
-      return;
-    }
+    const existingCUS = await checkThingExists404(res, CUS, "CUS");
+    if (!existingCUS) return;
 
-    if (CUS && CUS.role === "banned") {
-      res.status(409).json({
-        data: {
-          status: 409,
-          message: "User is banned!",
-        },
-      });
-      return;
-    }
-    if (!CUS) {
-      res.status(404).json({
-        data: {
-          status: 404,
-          message: "CUS not found",
-        },
-      });
-      return;
-    }
+    const CUSowner = await checkThingCUS409(
+      res,
+      CUS!.role === "owner",
+      "Owner",
+      "owner"
+    );
+    if (CUSowner) return;
+
+    const CUSbanned = await checkThingCUS409(
+      res,
+      CUS!.role === "banned",
+      "User",
+      "banned"
+    );
+    if (CUSbanned) return;
 
     await prisma.chat_user_settings.delete({
       where: {
-        id: Number(CUS.id),
+        id: Number(CUS!.id),
       },
     });
-    res.status(200).json({
-      data: {
-        status: 200,
-        message: "CUS deleted Successfully",
-      },
-    });
+
+    status200Message(res, "CUS deleted Successfully");
   } catch (err) {
-    res.status(500).json({
-      data: {
-        status: 500,
-        message: "Error fetching data",
-      },
-    });
+    status500(res);
   }
 };
 
