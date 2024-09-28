@@ -6,6 +6,8 @@ import {
   deleteUser,
   updateAvatar,
   deleteAvatar,
+  getUsername,
+  getEmail,
 } from "../controllers/userController.js";
 import {
   createBlockedUser,
@@ -41,6 +43,8 @@ const router = Router();
 router.route("/").get(getAllUser);
 router.route("/user").get(getUser).put(updateUser).delete(deleteUser);
 router.route("/avatar").put(updateAvatar).delete(deleteAvatar);
+router.route("/get-username").get(getUsername);
+router.route("/get-email").get(getEmail);
 
 router
   .route("/blocked")

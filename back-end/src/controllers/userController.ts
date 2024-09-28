@@ -43,6 +43,42 @@ const getUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// getUsername
+const getUsername = async (req: Request, res: Response): Promise<void> => {
+  const { username } = req.body;
+  try {
+    const user = await prisma.users.findUnique({
+      where: {
+        username,
+      },
+    });
+    const existingUser = await checkThingExists404(res, user, "Username");
+    if (!existingUser) return;
+
+    status200Send(res, user);
+  } catch (err) {
+    status500(res);
+  }
+};
+
+// getEmail
+const getEmail = async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body;
+  try {
+    const user = await prisma.users.findUnique({
+      where: {
+        email,
+      },
+    });
+    const existingUser = await checkThingExists404(res, user, "Username");
+    if (!existingUser) return;
+
+    status200Send(res, user);
+  } catch (err) {
+    status500(res);
+  }
+};
+
 // UPDATE USER
 const updateUser = async (req: Request, res: Response): Promise<void> => {
   const {
@@ -174,6 +210,8 @@ const deleteAvatar = async (req: Request, res: Response): Promise<void> => {
 export {
   getAllUser,
   getUser,
+  getUsername,
+  getEmail,
   updateUser,
   updateAvatar,
   deleteUser,
