@@ -10,17 +10,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/material": "^6.1.1",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.7",
+    "framer-motion": "^11.9.0",
     "jsonwebtoken": "^9.0.2",
     "my-front-end-app": "file:",
     "postcss": "^8.4.47",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-icons": "^5.3.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.26.2",
     "socket.io-client": "^4.8.0",
-    "tailwind": "^4.0.0"
+    "tailwind": "^4.0.0",
+    "tailwindcss": "^3.4.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
