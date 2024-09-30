@@ -80,6 +80,16 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+const getChats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const chats = await prisma.chats.findMany();
+
+    status200Send(res, chats);
+  } catch (err) {
+    status500(res);
+  }
+};
+
 const getChatsById = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.body;
   try {
@@ -125,4 +135,4 @@ const deleteChat = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export { createChat, getChatsById, deleteChat };
+export { getChats, createChat, getChatsById, deleteChat };

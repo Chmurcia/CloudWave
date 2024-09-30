@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createChat,
   deleteChat,
+  getChats,
   getChatsById,
 } from "../controllers/chatController.js";
 import {
@@ -28,7 +29,7 @@ import {
 } from "../controllers/chatUsersSettingControllers.js";
 const router = Router();
 
-router.route("/").post(createChat).delete(deleteChat);
+router.route("/").get(getChats).post(createChat).delete(deleteChat);
 router.route("/get-chats-by-user-id").get(getChatsById);
 
 router.route("/settings").get(getChatSettings).put(updateChatSettings);
