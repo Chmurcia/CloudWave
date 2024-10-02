@@ -76,7 +76,7 @@ const SignUpForm = ({
       action=""
       method="POST"
       onSubmit={handleSubmit}
-      className="flex w-full h-full justify-center items-center flex-col gap-4"
+      className="flex w-full h-full justify-center items-center flex-col gap-4 overflow-hidden"
     >
       <div className="flex justify-center w-full mb-5">
         <motion.p

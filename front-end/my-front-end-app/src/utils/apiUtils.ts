@@ -1,4 +1,9 @@
 import axios from "axios";
+import { jwtDecode, JwtPayload } from "jwt-decode";
+
+interface DecodedToken extends JwtPayload {
+  userId: string;
+}
 
 export const fetchUsername = async (username: string) => {
   try {
@@ -60,8 +65,62 @@ export const createUser = async (
       "http://localhost:8081/api/auth/register",
       { username, email, password }
     );
-    console.log(response.data);
+    return response.data;
   } catch (err) {
-    console.log(err);
+    if (err) return 404;
   }
 };
+
+export const loginUser = async (email: string, password: string) => {
+  try {
+    const response = await axios.post("http://localhost:8081/api/auth/login", {
+      email,
+      password,
+    });
+    return response.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      return err.response?.data.data;
+    } else {
+      console.log(err);
+    }
+  }
+};
+
+export const checkUsername = async (username: string) => {
+  try {
+    const response = await axios.post(
+      "http://localhost:8081/api/users/get-username",
+      { username }
+    );
+    console.log(response.data);
+  } catch (err) {
+    if (err) return 404;
+  }
+};
+
+export const checkEmail = async (email: string) => {
+  try {
+    const response = await axios.post(
+      "http://localhost:8081/api/users/get-email",
+      { email }
+    );
+    console.log(response);
+    return response;
+  } catch (err) {
+    if (err) return 404;
+  }
+};
+
+export const getIdFromToken = () => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    const decodedToken = jwtDecode<DecodedToken>(token);
+
+    console.log(decodedToken.userId);
+  } else {
+    return null;
+  }
+};
+
+export const getProfilePic = (userId: number) => {};

@@ -1,18 +1,26 @@
 import { motion } from "framer-motion";
 
-const text: string[] = "C l o u d W a v e".split(" ");
-
-const MainTitleAnimation = ({ className }: { className: string }) => {
+const TextAnimIn = ({
+  string,
+  className,
+  delay,
+}: {
+  string: string;
+  className: string;
+  delay: number;
+}) => {
+  const text: string[] = string.split(".");
   return (
     <div className={className}>
       {text.map((el, i) => {
+        el = el.replace(/-/g, " ");
         return (
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{
               duration: 1,
-              delay: i / 10,
+              delay: i / delay,
             }}
             key={i}
           >
@@ -24,4 +32,4 @@ const MainTitleAnimation = ({ className }: { className: string }) => {
   );
 };
 
-export default MainTitleAnimation;
+export default TextAnimIn;
