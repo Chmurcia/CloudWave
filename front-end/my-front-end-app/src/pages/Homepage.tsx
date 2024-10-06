@@ -1,4 +1,4 @@
-import BottomNavBar from "../components/Homepage/BottomNavBar/BottomNavBar";
+import BottomNavBar from "../components/shared/BottomNavBar/BottomNavBar";
 
 const Homepage = () => {
   return (

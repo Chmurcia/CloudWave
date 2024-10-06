@@ -14,8 +14,6 @@ const Option = ({ children, onClick, path }: OptionProps) => {
     "bg-slate-300": !location.pathname.startsWith(path),
   });
 
-  console.log(optionClass);
-
   return (
     <button onClick={onClick} className={optionClass}>
       <div>{children}</div>

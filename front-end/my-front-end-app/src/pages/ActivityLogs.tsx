@@ -1,12 +1,12 @@
 import BottomNavBar from "../components/shared/BottomNavBar/BottomNavBar";
 
-const Settings = () => {
+const ActivityLogs = () => {
   return (
     <>
-      <div>settings</div>
+      <div>friend requests</div>
       <BottomNavBar />
     </>
   );
 };
 
-export default Settings;
+export default ActivityLogs;

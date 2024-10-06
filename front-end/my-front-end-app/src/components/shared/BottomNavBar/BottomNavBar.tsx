@@ -9,11 +9,13 @@ import {
   IoSettingsOutline,
 } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Menu from "./Menu";
+import { getIdFromToken } from "../../../utils/apiUtils";
 
 const BottomNavBar = () => {
   const [open, setOpen] = useState<boolean>(false);
+  const [id, setId] = useState<number>(0);
 
   const navigate = useNavigate();
 
@@ -34,6 +36,15 @@ const BottomNavBar = () => {
   const BlockedUsersOnClick = () => console.log("bu");
   const ReportsOnClick = () => console.log("r");
 
+  useEffect(() => {
+    const fetchData = async () => {
+      const id = await getIdFromToken();
+      setId(Number(id));
+    };
+
+    fetchData();
+  });
+
   return (
     <div className="flex bg-slate-300 fixed bottom-0 h-16 w-full">
       <Option onClick={homePlaceholder} path="/homepage">
@@ -45,8 +56,11 @@ const BottomNavBar = () => {
       <Option onClick={chatsPlaceholder} path="/chats">
         <IoChatboxEllipsesOutline size={25} />
       </Option>
-      <ProfileCircle src={profilePic} onClick={() => profilePlaceholder(2)} />
-      <Option onClick={() => notificationsPlaceholder(2)} path="/notifications">
+      <ProfileCircle src={profilePic} onClick={() => profilePlaceholder(id)} />
+      <Option
+        onClick={() => notificationsPlaceholder(id)}
+        path="/notifications"
+      >
         <IoMdNotificationsOutline size={25} />
       </Option>
       <Option onClick={settingsPlaceholder} path="/settings">
